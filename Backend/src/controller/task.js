@@ -62,7 +62,7 @@ exports.updateTask = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const task = await Tasks.findByPk(id);
+    const task = await Tasks.findByPk(taskId);
     if (!task) {
       return res
         .status(404)
