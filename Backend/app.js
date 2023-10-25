@@ -48,7 +48,7 @@ app.use("*", (req, res) => {
   res.send("not found");
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`server running on port ${PORT}`);
 });
 
