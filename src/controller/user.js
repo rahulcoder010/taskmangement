@@ -1,3 +1,4 @@
+```javascript
 const Joi = require("joi");
 const db = require("../models/index.js");
 const Users = db.User;
@@ -55,11 +56,13 @@ exports.registerUser = async (req, res, next) => {
     res.status(201).json({
       success: true,
       data: user,
+      message: "User created successfully"
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
+      message: "Failed to create user"
     });
   }
 };
@@ -72,6 +75,7 @@ exports.login = async (req, res) => {
     return res.status(400).json({
       success: false,
       Error: "Please provide an email and password",
+      message: "Authentication failed"
     });
   }
 
@@ -81,6 +85,7 @@ exports.login = async (req, res) => {
     return res.status(401).json({
       success: false,
       Error: "Invalid credential",
+      message: "Authentication failed"
     });
   }
 
@@ -90,6 +95,7 @@ exports.login = async (req, res) => {
     return res.status(401).json({
       success: false,
       Error: "Incorrect Password",
+      message: "Authentication failed"
     });
   }
 
@@ -111,11 +117,13 @@ exports.updateUser = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: fieldsToUpdate,
+      message: "User updated successfully"
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
+      message: "Failed to update user"
     });
   }
 };
@@ -129,6 +137,7 @@ exports.updatePassword = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         Error: "Invalid credential",
+        message: "Failed to update password"
       });
     }
 
@@ -136,6 +145,7 @@ exports.updatePassword = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         Error: "CurrentPassword is incorrect",
+        message: "Failed to update password"
       });
     }
 
@@ -145,11 +155,13 @@ exports.updatePassword = async (req, res, next) => {
     res.status(201).json({
       success: true,
       newPassword: user.password,
+      message: "Password updated successfully"
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
+      message: "Failed to update password"
     });
   }
 };
@@ -163,6 +175,7 @@ exports.logout = async (req, res) => {
       return res.status(400).json({
         success: false,
         Error: `please login again!`,
+        message: "Logout failed"
       });
     }
 
@@ -172,11 +185,13 @@ exports.logout = async (req, res) => {
     res.status(201).json({
       success: true,
       message: `logout User ${finderUser.name} successfully!`,
+      message: "Logout successful"
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
+      message: "Logout failed"
     });
   }
 };
@@ -187,7 +202,9 @@ const sendTokenResponse = async (user, statusCode, res) => {
   res.status(statusCode).json({
     success: true,
     token,
-    user
+    user,
+    message: "Login successful"
   });
   await Users.update({ token }, { where: { id: user.id } });
 };
+```
