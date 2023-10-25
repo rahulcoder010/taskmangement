@@ -103,7 +103,7 @@ module.exports = {
       password: bcrypt.hashSync(user.password, salt)
     }));
 
-    return queryInterface.bulkInsert('Users', hashedUsersData, {});
+    return queryInterface.bulkInser('Users', hashedUsersData, {});
   },
 
   down: (queryInterface, Sequelize) => {
