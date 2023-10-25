@@ -6,17 +6,17 @@ exports.allTasks = async (req, res) => {
     if (!req.user.token) {
       return res.status(400).json({
         success: false,
-        Error: "Please login again!",
+        Error: `Please login again!`,
       });
     }
-    const tasks = await Tasks.findAll({
+    const task = await Tasks.findAll({
       order: [["id", "ASC"]],
     });
 
     res.status(200).json({
       success: true,
-      count: tasks.length,
-      data: tasks,
+      count: task.length,
+      data: task,
     });
   } catch (error) {
     res.status(404).json({
@@ -32,13 +32,13 @@ exports.addTask = async (req, res, next) => {
     if (!title || !description) {
       return res.status(400).json({
         success: false,
-        Error: "title & description are required!",
+        Error: `title & description are required!`,
       });
     }
     if (title.length >= 50 || description.length >= 200) {
       return res.status(400).json({
         success: false,
-        Error: "Title or description length too long!",
+        Error: `Title or description length too long!`,
       });
     }
 
@@ -62,16 +62,16 @@ exports.updateTask = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const task = await Tasks.findByPk(id);
+    const task = await Tasks.findByPk(taskId);
     if (!task) {
       return res
         .status(404)
-        .json({ success: false, message: "Task not found!" });
+        .json({ status: false, message: "Task not found!" });
     }
     if (!status) {
       return res
         .status(404)
-        .json({ success: false, message: "Please add status in body!" });
+        .json({ status: false, message: "Please add status in body!" });
     }
     task.status = status;
     await task.save();
@@ -98,7 +98,7 @@ exports.deleteTask = async (req, res, next) => {
 
     if (!task) {
       return res.status(404).json({
-        success: false,
+        status: false,
         Error: "Task not found!",
       });
     }
