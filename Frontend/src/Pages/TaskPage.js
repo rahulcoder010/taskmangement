@@ -4,6 +4,7 @@ import { useHistory } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import io from "socket.io-client";
+import { FaEdit, FaTrash } from "react-icons/fa";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
@@ -20,6 +21,11 @@ const TaskPage = () => {
       return text.slice(0, maxLength) + "...";
     }
     return text;
+  };
+
+  const formatStatus = (status) => {
+    const lowercaseStatus = status.toLowerCase();
+    return lowercaseStatus.charAt(0).toUpperCase() + lowercaseStatus.slice(1);
   };
 
   useEffect(() => {
@@ -53,7 +59,11 @@ const TaskPage = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setTasks(response.data.data);
+      const taskData = response?.data?.data
+      const formattedTasks = taskData.map((task) => {
+        return { ...task, status: formatStatus(task.status) };
+      });
+      setTasks(formattedTasks);
     } catch (error) {
       toast.error(error.response.data.Error);
       if (error.response.data.Error === "Please login again!") {
@@ -78,7 +88,7 @@ const TaskPage = () => {
       );
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
-          task.id === taskId ? { ...task, status: newStatus } : task
+          task.id === taskId ? { ...task, status: formatStatus(task.status) } : task
         )
       );
       toast.success("Task status updated!");
@@ -124,7 +134,7 @@ const TaskPage = () => {
   };
 
   useEffect(() => {
-    const socket = io("http://192.168.1.36:5000");
+    const socket = io("http://localhost:5000");
     // Handle "connect" event
     socket.on("connect", () => {
       console.log("Connected to server");
@@ -301,7 +311,7 @@ const TaskPage = () => {
                               data-bs-toggle="modal"
                               data-bs-target={`#exampleModal${i}`}
                             >
-                              Update
+                              <FaEdit />
                             </button>
                             <div
                               className="modal fade"
@@ -394,7 +404,7 @@ const TaskPage = () => {
                               className="btn btn-danger"
                               onClick={() => handleDeleteTask(task.id)}
                             >
-                              Delete
+                              <FaTrash />
                             </button>
                           </td>
                         </tr>
