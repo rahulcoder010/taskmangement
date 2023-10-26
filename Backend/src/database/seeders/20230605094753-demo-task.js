@@ -13,7 +13,7 @@ module.exports = {
       {
         title: "Task 2",
         description: "This is task 2",
-        status: "In_Progress",
+        status: "pending", // Updated status from "In_Progress" to "pending"
         createdAt: new Date(),
         updatedAt: new Date(),
       },
