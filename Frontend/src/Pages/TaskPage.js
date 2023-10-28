@@ -4,7 +4,7 @@ import { useHistory } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import io from "socket.io-client";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash, FaSave, FaClose } from "react-icons/fa";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
@@ -46,7 +46,7 @@ const TaskPage = () => {
         },
       });
       localStorage.removeItem("userInfo");
-      history.push("/"); // Redirect to the login page or any other page
+      history.push("/"); 
     } catch (error) {
       toast.error(error.response.data.Error);
     }
@@ -135,7 +135,7 @@ const TaskPage = () => {
 
   useEffect(() => {
     const socket = io("http://localhost:5000");
-    // Handle "connect" event
+
     socket.on("connect", () => {
       console.log("Connected to server");
     });
@@ -226,7 +226,6 @@ const TaskPage = () => {
                           </div>
                           <div className="modal-body">
                             <div className="mb-3">
-                              {/* <label for="exampleInputEmail1" className="form-label">Email address</label> */}
                               <input
                                 type="text"
                                 className="form-control"
@@ -241,10 +240,8 @@ const TaskPage = () => {
                                   })
                                 }
                               />
-                              {/* <div id="emailHelp" className="form-text">We'll never share your email with anyone else.</div> */}
                             </div>
                             <div className="mb-3">
-                              {/* <label for="exampleInputPassword1" className="form-label">Password</label> */}
                               <input
                                 type="text"
                                 className="form-control"
@@ -392,7 +389,7 @@ const TaskPage = () => {
                                           .click();
                                       }}
                                     >
-                                      Save changes
+                                      <FaSave />
                                     </button>
                                   </div>
                                 </div>
