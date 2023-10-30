@@ -17,14 +17,8 @@ module.exports = {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-      {
-        title: "Task 3",
-        description: "This is task 3",
-        status: "Completed",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
+
+    ])
   },
   down: (queryInterface, Sequelize) => {
     return queryInterface.bulkDelete("Tasks", null, {});
