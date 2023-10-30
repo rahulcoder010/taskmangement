@@ -90,7 +90,7 @@ module.exports = {
     },
     {
       name: 'Kevin Chodvadiya',
-      email: 'kevin@gmail.com',
+      email: 'kevin.chodvadiya@example.com',
       password: '12345678',
       createdAt: new Date(),
       updatedAt: new Date()
