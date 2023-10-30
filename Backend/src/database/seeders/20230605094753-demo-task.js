@@ -13,7 +13,7 @@ module.exports = {
       {
         title: "Task 2",
         description: "This is task 2",
-        status: "In_Progress",
+        status: "In_Progress", // This line throws the "In_Progress" error
         createdAt: new Date(),
         updatedAt: new Date(),
       },

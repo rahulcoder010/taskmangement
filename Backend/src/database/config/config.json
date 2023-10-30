@@ -19,5 +19,12 @@
     "database": "database_production",
     "host": "127.0.0.1",
     "dialect": "postgres"
+  },
+  "in_progress": {
+    "username": "your_username",
+    "password": "your_password",
+    "database": "your_database",
+    "host": "your_host",
+    "dialect": "postgres"
   }
 }
