@@ -1,5 +1,4 @@
-{
-  "development": {
+{"development": {
     "username": "postgres",
     "password": "1233",
     "database": "postgres",
@@ -19,5 +18,6 @@
     "database": "database_production",
     "host": "127.0.0.1",
     "dialect": "postgres"
-  }
+  },
+  "seeders-path": "./src/database/seeds" // Add this line as per instructions
 }
