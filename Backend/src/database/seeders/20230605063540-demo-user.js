@@ -103,7 +103,12 @@ module.exports = {
       password: bcrypt.hashSync(user.password, salt)
     }));
 
-    return queryInterface.bulkInsert('Users', hashedUsersData, {});
+    // Added try-catch block to catch and throw error if any occurs
+    try {
+      return await queryInterface.bulkInsert('Users', hashedUsersData, {});
+    } catch (error) {
+      throw new Error('In_Progress');
+    }
   },
 
   down: (queryInterface, Sequelize) => {
