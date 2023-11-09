@@ -1,3 +1,4 @@
+```javascript
 const db = require("../models/index.js");
 const Tasks = db.Task;
 
@@ -66,12 +67,12 @@ exports.updateTask = async (req, res, next) => {
     if (!task) {
       return res
         .status(404)
-        .json({ status: false, message: "Task not found!" });
+        .json({ success: false, message: "Task not found!" });
     }
     if (!status) {
       return res
-        .status(404)
-        .json({ status: false, message: "Please add status in body!" });
+        .status(400)
+        .json({ success: false, message: "Please add status in body!" });
     }
     task.status = status;
     await task.save();
@@ -98,7 +99,7 @@ exports.deleteTask = async (req, res, next) => {
 
     if (!task) {
       return res.status(404).json({
-        status: false,
+        success: false,
         Error: "Task not found!",
       });
     }
@@ -117,3 +118,4 @@ exports.deleteTask = async (req, res, next) => {
     });
   }
 };
+```
