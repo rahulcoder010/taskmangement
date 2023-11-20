@@ -8,6 +8,7 @@ function App() {
 
   return (
     <div className="App">
+      {/* Your code for star pattern goes here */}
       <Route exact path="/" component={HomePage} />
       <Route path="/tasks" component={TaskPage} />
     </div>
