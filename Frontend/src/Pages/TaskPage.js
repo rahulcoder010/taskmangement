@@ -268,7 +268,7 @@ const TaskPage = () => {
                               >
                                 Close
                               </button>
-                              <button type="submit" className="btn btn-primary">
+                              <button type="submit" style={{textDecoration: 'underline dotted 1px', background: 'white'}} className="btn btn-primary">
                                 Submit
                               </button>
                             </div>
@@ -293,16 +293,17 @@ const TaskPage = () => {
                           <th scope="row" key={task.id}>
                             {task.id}
                           </th>
-                          <td style={{ maxWidth: "180px" }}>{task.title}</td>
+                          <td style={{ maxWidth: "180px", backgroundImage: 'linear-gradient(to right, #000000 0%, #424242 100%)'}}>{task.title}</td>
                           <td
                             style={{
                               maxWidth: "180px",
                               wordWrap: "break-word",
+                              backgroundImage: 'linear-gradient(to right, #000000 0%, #424242 100%)'
                             }}
                           >
                             {task.description}
                           </td>
-                          <td>{task.status}</td>
+                          <td style={{color: 'red'}}>{task.status}</td>
                           <td>
                             <button
                               style={{ marginRight: "10px" }}
@@ -323,12 +324,13 @@ const TaskPage = () => {
                               <div className="modal-dialog">
                                 <div className="modal-content">
                                   <div className="modal-header">
-                                    <h1
+                                    <h3
                                       className="modal-title fs-5"
                                       id="exampleModalLabel"
+                                      style = {{fontFamily: 'Arial, sans-serif', fontSize: '22px', fontWeight: 'normal', lineHeight: '1.5em', color: "#191919", letterSpacing: '3px', textTransform: 'uppercase'}}
                                     >
                                       {truncateText(task.title, 42)}
-                                    </h1>
+                                    </h3>
                                     <button
                                       type="button"
                                       className="btn-close"
