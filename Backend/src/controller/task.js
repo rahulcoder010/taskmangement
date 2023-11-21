@@ -66,15 +66,15 @@ exports.updateTask = async (req, res, next) => {
     if (!task) {
       return res
         .status(404)
-        .json({ status: false, message: "Task not found!" });
+        .json({ success: false, message: "Task not found!" });
     }
     if (!status) {
       return res
-        .status(404)
-        .json({ status: false, message: "Please add status in body!" });
+        .status(400)
+        .json({ success: false, Error: "Please add status in body!" });
     }
-    task.status = status;
-    await task.save();
+    task.status = status; // Update status property of task
+    await task.save(); // Save the updated task
 
     req.mainData = {
       success: true,
