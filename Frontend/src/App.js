@@ -4,7 +4,7 @@ import HomePage from './Pages/HomePage';
 import TaskPage from './Pages/TaskPage';
 
 
-function App() {
+const App = () => {
 
   return (
     <div className="App">
