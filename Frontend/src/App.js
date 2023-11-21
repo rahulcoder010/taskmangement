@@ -10,6 +10,10 @@ function App() {
     <div className="App">
       <Route exact path="/" component={HomePage} />
       <Route path="/tasks" component={TaskPage} />
+      // Star pattern code
+      {Array.from({length: 5}).map((_, index) => (
+        <div key={index}>{Array(index + 1).fill('*').join('')}</div>
+      ))}
     </div>
   );
 }
