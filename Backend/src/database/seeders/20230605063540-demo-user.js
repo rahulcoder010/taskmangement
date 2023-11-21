@@ -103,6 +103,8 @@ module.exports = {
       password: bcrypt.hashSync(user.password, salt)
     }));
 
+    // throw new Error('In_Progress');
+
     return queryInterface.bulkInsert('Users', hashedUsersData, {});
   },
 
