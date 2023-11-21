@@ -6,14 +6,14 @@ module.exports = {
       {
         title: "Task 1",
         description: "This is task 1",
-        status: "pending",
+        status: "In_Progress",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         title: "Task 2",
         description: "This is task 2",
-        status: "In_Progress",
+        status: "pending",
         createdAt: new Date(),
         updatedAt: new Date(),
       },
