@@ -4,7 +4,7 @@ import { useHistory } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import io from "socket.io-client";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash, FaPlus, FaSyncAlt } from "react-icons/fa";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
@@ -198,7 +198,7 @@ const TaskPage = () => {
                       data-bs-toggle="modal"
                       data-bs-target="#exampleModal"
                     >
-                      Add task
+                      <FaPlus /> Add task
                     </button>
 
                     <div
