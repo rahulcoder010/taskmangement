@@ -4,7 +4,7 @@ import { useHistory } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import io from "socket.io-client";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash, FaPlus, FaPen } from "react-icons/fa";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
@@ -173,7 +173,7 @@ const TaskPage = () => {
   }, [tasks]);
 
   return (
-    <div>
+<div>
       <section className="vh-100" style={{ backgroundColor: "#eee" }}>
         <div className="container py-5 h-100">
           <div className="row d-flex justify-content-center align-items-center h-100">
@@ -198,7 +198,7 @@ const TaskPage = () => {
                       data-bs-toggle="modal"
                       data-bs-target="#exampleModal"
                     >
-                      Add task
+                      <FaPlus style={{ marginRight: "5px" }} /> Add task
                     </button>
 
                     <div
@@ -311,7 +311,8 @@ const TaskPage = () => {
                               data-bs-toggle="modal"
                               data-bs-target={`#exampleModal${i}`}
                             >
-                              <FaEdit />
+                            
+                              <FaPen />
                             </button>
                             <div
                               className="modal fade"
