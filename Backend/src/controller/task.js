@@ -3,7 +3,7 @@ const Tasks = db.Task;
 
 exports.allTasks = async (req, res) => {
   try {
-    if (!req.user.token) {
+    if (!req.user || !req.user.token) {
       return res.status(400).json({
         success: false,
         Error: "**Please login again!**",
@@ -66,12 +66,12 @@ exports.updateTask = async (req, res, next) => {
     if (!task) {
       return res
         .status(404)
-        .json({ status: false, message: "Task not found!" });
+        .json({ success: false, message: "Task not found!" });
     }
     if (!status) {
       return res
         .status(404)
-        .json({ status: false, message: "Please add status in body!" });
+        .json({ success: false, message: "Please add status in body!" });
     }
     task.status = status;
     await task.save();
@@ -98,7 +98,7 @@ exports.deleteTask = async (req, res, next) => {
 
     if (!task) {
       return res.status(404).json({
-        status: false,
+        success: false,
         Error: "Task not found!",
       });
     }
