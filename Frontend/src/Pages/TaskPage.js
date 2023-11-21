@@ -4,7 +4,7 @@ import { useHistory } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import io from "socket.io-client";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { HiPencilAlt, HiTrash } from "react-icons/hi";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
@@ -59,7 +59,7 @@ const TaskPage = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      const taskData = response?.data?.data
+      const taskData = response?.data?.data;
       const formattedTasks = taskData.map((task) => {
         return { ...task, status: formatStatus(task.status) };
       });
@@ -311,7 +311,7 @@ const TaskPage = () => {
                               data-bs-toggle="modal"
                               data-bs-target={`#exampleModal${i}`}
                             >
-                              <FaEdit />
+                              <HiPencilAlt />
                             </button>
                             <div
                               className="modal fade"
@@ -404,7 +404,7 @@ const TaskPage = () => {
                               className="btn btn-danger"
                               onClick={() => handleDeleteTask(task.id)}
                             >
-                              <FaTrash />
+                              <HiTrash />
                             </button>
                           </td>
                         </tr>
