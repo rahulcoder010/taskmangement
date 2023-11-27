@@ -1,3 +1,4 @@
+```javascript
 const db = require("../models/index.js");
 const Tasks = db.Task;
 
@@ -117,3 +118,4 @@ exports.deleteTask = async (req, res, next) => {
     });
   }
 };
+```
