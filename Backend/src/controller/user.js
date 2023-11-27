@@ -2,207 +2,531 @@ const Joi = require("joi");
 const db = require("../models/index.js");
 const Users = db.User;
 
-//ALL USER
-exports.allUsers = async (req, res) => {
-  try {
-    const user = await Users.findAll({
-      order: [["id", "ASC"]],
-    });
+// UNIT TEST CASES FOR allUsers FUNCTION
+test("should return all users", async () => {
+  const findAll = jest.spyOn(Users, "findAll").mockResolvedValue([
+    { id: 1, name: "John Doe", email: "john@example.com" },
+    { id: 2, name: "Jane Smith", email: "jane@example.com" },
+  ]);
 
-    res.status(200).json({
-      success: true,
-      count: user.length,
-      data: user,
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
+  const req = {};
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
 
-// REGISTER USER
-exports.registerUser = async (req, res, next) => {
-  try {
-    const { body } = req;
+  await exports.allUsers(req, res);
 
-    const blogSchema = Joi.object({
-      name: Joi.string().required(),
-      email: Joi.string()
-        .required()
-        .email({ tlds: { allow: false } }),
-      password: Joi.string().required().min(6),
-    });
-
-    const { name, email, password } = await blogSchema.validateAsync(body);
-
-    const userExists = await Users.findOne({where: {email: req.body.email}})
-
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        Error: `User ${userExists.name} already registered!`
-      })
-    }
-
-    const user = await Users.create({
-      name,
-      email,
-      password,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: user,
-      message: "User created successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to create user"
-    });
-  }
-};
-
-//LOGIN USER
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      Error: "Please provide an email and password",
-      message: "Authentication failed"
-    });
-  }
-
-  const user = await Users.findOne({ where: { email: req.body.email } });
-
-  if (!user || user === null) {
-    return res.status(401).json({
-      success: false,
-      Error: "Invalid credential",
-      message: "Authentication failed"
-    });
-  }
-
-  const isMatch = await user.validPassword(password, user.password);
-
-  if (!isMatch) {
-    return res.status(401).json({
-      success: false,
-      Error: "Incorrect Password",
-      message: "Authentication failed"
-    });
-  }
-
-  sendTokenResponse(user, 200, res);
-};
-
-//UPDATE USER
-exports.updateUser = async (req, res, next) => {
-  try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-    };
-
-    await Users.update(fieldsToUpdate, {
-      where: { id: req.user.id },
-    });
-
-    res.status(200).json({
-      success: true,
-      data: fieldsToUpdate,
-      message: "User updated successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to update user"
-    });
-  }
-};
-
-//UPDATE PASSWORD
-exports.updatePassword = async (req, res, next) => {
-  try {
-    const user = await Users.findByPk(req.user.id);
-
-    if (!user || user === null) {
-      return res.status(401).json({
-        success: false,
-        Error: "Invalid credential",
-        message: "Failed to update password"
-      });
-    }
-
-    if (!(await user.matchPassword(req.body.currentPassword))) {
-      return res.status(401).json({
-        success: false,
-        Error: "CurrentPassword is incorrect",
-        message: "Failed to update password"
-      });
-    }
-
-    user.password = req.body.newPassword;
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      newPassword: user.password,
-      message: "Password updated successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to update password"
-    });
-  }
-};
-
-exports.logout = async (req, res) => {
-  try {
-    const finderUser = await Users.findOne({
-      where: { token: req.user.token },
-    });
-    if (!finderUser || finderUser == "null") {
-      return res.status(400).json({
-        success: false,
-        Error: `please login again!`,
-        message: "Logout failed"
-      });
-    }
-
-    finderUser.token = null;
-    await finderUser.save();
-
-    res.status(201).json({
-      success: true,
-      message: `logout User ${finderUser.name} successfully!`,
-      message: "Logout successful"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Logout failed"
-    });
-  }
-};
-
-//CREATE TOKEN & SEND RESPONSE
-const sendTokenResponse = async (user, statusCode, res) => {
-  const token = user.getSignedJwtToken(user.id);
-  res.status(statusCode).json({
+  expect(findAll).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
     success: true,
-    token,
-    user,
-    message: "Login successful"
+    count: 2,
+    data: [
+      { id: 1, name: "John Doe", email: "john@example.com" },
+      { id: 2, name: "Jane Smith", email: "jane@example.com" },
+    ],
   });
-  await Users.update({ token }, { where: { id: user.id } });
-};
+});
+
+test("should return error when allUsers function fails", async () => {
+  const findAll = jest.spyOn(Users, "findAll").mockRejectedValue(new Error("Database Connection Error"));
+
+  const req = {};
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.allUsers(req, res);
+
+  expect(findAll).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Database Connection Error",
+  });
+});
+
+
+
+// UNIT TEST CASES FOR registerUser FUNCTION
+test("should create and return user with valid data", async () => {
+  const create = jest.spyOn(Users, "create").mockResolvedValue({
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    password: "password",
+  });
+
+  const req = {
+    body: {
+      name: "John Doe",
+      email: "john@example.com",
+      password: "password",
+    }
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.registerUser(req, res);
+
+  expect(create).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    data: {
+      id: 1,
+      name: "John Doe",
+      email: "john@example.com",
+      password: "password",
+    },
+    message: "User created successfully",
+  });
+});
+
+test("should return error when user already exists", async () => {
+  const findOne = jest.spyOn(Users, "findOne").mockResolvedValue({
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    password: "password",
+  });
+
+  const req = {
+    body: {
+      name: "John Doe",
+      email: "john@example.com",
+      password: "password",
+    }
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.registerUser(req, res);
+
+  expect(findOne).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(400);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "User John Doe already registered!"
+  });
+});
+
+test("should return error when registerUser function fails", async () => {
+  const create = jest.spyOn(Users, "create").mockRejectedValue(new Error("Database Connection Error"));
+
+  const req = {
+    body: {
+      name: "John Doe",
+      email: "john@example.com",
+      password: "password",
+    }
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.registerUser(req, res);
+
+  expect(create).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Database Connection Error",
+    message: "Failed to create user",
+  });
+});
+
+
+
+// UNIT TEST CASES FOR login FUNCTION
+test("should login and return token with valid credentials", async () => {
+  const findOne = jest.spyOn(Users, "findOne").mockResolvedValue({
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    password: "password",
+    validPassword: jest.fn().mockResolvedValue(true),
+    getSignedJwtToken: jest.fn().mockReturnValue("token"),
+  });
+
+  const req = {
+    body: {
+      email: "john@example.com",
+      password: "password",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.login(req, res);
+
+  expect(findOne).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    token: "token",
+    user: {
+      id: 1,
+      name: "John Doe",
+      email: "john@example.com",
+      password: "password",
+    },
+    message: "Login successful",
+  });
+});
+
+test("should return error when email or password is not provided", async () => {
+  const req = {
+    body: {
+      email: "",
+      password: "password",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.login(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(400);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Please provide an email and password",
+    message: "Authentication failed",
+  });
+});
+
+test("should return error when user with given email is not found", async () => {
+  const findOne = jest.spyOn(Users, "findOne").mockResolvedValue(null);
+
+  const req = {
+    body: {
+      email: "john@example.com",
+      password: "password",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.login(req, res);
+
+  expect(findOne).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(401);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Invalid credential",
+    message: "Authentication failed",
+  });
+});
+
+test("should return error when password is incorrect", async () => {
+  const findOne = jest.spyOn(Users, "findOne").mockResolvedValue({
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    password: "password",
+    validPassword: jest.fn().mockResolvedValue(false),
+  });
+
+  const req = {
+    body: {
+      email: "john@example.com",
+      password: "wrongpassword",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.login(req, res);
+
+  expect(findOne).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(401);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Incorrect Password",
+    message: "Authentication failed",
+  });
+});
+
+
+
+// UNIT TEST CASES FOR updateUser FUNCTION
+test("should update user and return updated data", async () => {
+  const update = jest.spyOn(Users, "update").mockResolvedValue(true);
+
+  const req = {
+    body: {
+      name: "John Doe",
+      email: "john@example.com",
+    },
+    user: {
+      id: 1,
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.updateUser(req, res);
+
+  expect(update).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    data: {
+      name: "John Doe",
+      email: "john@example.com",
+    },
+    message: "User updated successfully",
+  });
+});
+
+test("should return error when updateUser function fails", async () => {
+  const update = jest.spyOn(Users, "update").mockRejectedValue(new Error("Database Connection Error"));
+
+  const req = {
+    body: {
+      name: "",
+      email: "john@example.com",
+    },
+    user: {
+      id: 1,
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.updateUser(req, res);
+
+  expect(update).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Database Connection Error",
+    message: "Failed to update user",
+  });
+});
+
+
+
+// UNIT TEST CASES FOR updatePassword FUNCTION
+test("should update password and return updated password", async () => {
+  const findByPk = jest.spyOn(Users, "findByPk").mockResolvedValue({
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    password: "oldpassword",
+    matchPassword: jest.fn().mockResolvedValue(true),
+    save: jest.fn(),
+  });
+
+  const req = {
+    body: {
+      currentPassword: "oldpassword",
+      newPassword: "newpassword",
+    },
+    user: {
+      id: 1,
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.updatePassword(req, res);
+
+  expect(findByPk).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    newPassword: "newpassword",
+    message: "Password updated successfully",
+  });
+});
+
+test("should return error when user is not found", async () => {
+  const findByPk = jest.spyOn(Users, "findByPk").mockResolvedValue(null);
+
+  const req = {
+    body: {
+      currentPassword: "oldpassword",
+      newPassword: "newpassword",
+    },
+    user: {
+      id: 1,
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.updatePassword(req, res);
+
+  expect(findByPk).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(401);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Invalid credential",
+    message: "Failed to update password",
+  });
+});
+
+test("should return error when current password is incorrect", async () => {
+  const findByPk = jest.spyOn(Users, "findByPk").mockResolvedValue({
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+    password: "oldpassword",
+    matchPassword: jest.fn().mockResolvedValue(false),
+  });
+
+  const req = {
+    body: {
+      currentPassword: "wrongpassword",
+      newPassword: "newpassword",
+    },
+    user: {
+      id: 1,
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.updatePassword(req, res);
+
+  expect(findByPk).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(401);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "CurrentPassword is incorrect",
+    message: "Failed to update password",
+  });
+});
+
+test("should return error when updatePassword function fails", async () => {
+  const findByPk = jest.spyOn(Users, "findByPk").mockRejectedValue(new Error("Database Connection Error"));
+
+  const req = {
+    body: {
+      currentPassword: "oldpassword",
+      newPassword: "newpassword",
+    },
+    user: {
+      id: 1,
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.updatePassword(req, res);
+
+  expect(findByPk).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Database Connection Error",
+    message: "Failed to update password",
+  });
+});
+
+
+
+// UNIT TEST CASES FOR logout FUNCTION
+test("should logout user and return success message", async () => {
+  const findOne = jest.spyOn(Users, "findOne").mockResolvedValue({
+    name: "John Doe",
+    token: "token"
+  });
+  const save = jest.fn();
+
+  const req = {
+    user: {
+      token: "token",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.logout(req, res);
+
+  expect(findOne).toHaveBeenCalled();
+  expect(save).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    message: "logout User John Doe successfully!",
+  });
+});
+
+test("should return error when user token is not found", async () => {
+  const findOne = jest.spyOn(Users, "findOne").mockResolvedValue(null);
+
+  const req = {
+    user: {
+      token: "token",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.logout(req, res);
+
+  expect(findOne).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(400);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "please login again!",
+    message: "Logout failed",
+  });
+});
+
+test("should return error when logout function fails", async () => {
+  const findOne = jest.spyOn(Users, "findOne").mockRejectedValue(new Error("Database Connection Error"));
+
+  const req = {
+    user: {
+      token: "token",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  await exports.logout(req, res);
+
+  expect(findOne).toHaveBeenCalled();
+  expect(res.status).toHaveBeenCalledWith(404);
+  expect(res.json).toHaveBeenCalledWith({
+    success: false,
+    Error: "Database Connection Error",
+    message: "Logout failed",
+  });
+});
