@@ -1,4 +1,5 @@
 const Joi = require("joi");
+const bcrypt = require("bcrypt");
 const db = require("../models/index.js");
 const Users = db.User;
 
@@ -46,10 +47,13 @@ exports.registerUser = async (req, res, next) => {
       })
     }
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const user = await Users.create({
       name,
       email,
-      password,
+      password: hashedPassword,
     });
 
     res.status(201).json({
@@ -88,7 +92,7 @@ exports.login = async (req, res) => {
     });
   }
 
-  const isMatch = await user.validPassword(password, user.password);
+  const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
     return res.status(401).json({
@@ -140,7 +144,7 @@ exports.updatePassword = async (req, res, next) => {
       });
     }
 
-    if (!(await user.matchPassword(req.body.currentPassword))) {
+    if (!(await bcrypt.compare(req.body.currentPassword, user.password))) {
       return res.status(401).json({
         success: false,
         Error: "CurrentPassword is incorrect",
@@ -148,7 +152,9 @@ exports.updatePassword = async (req, res, next) => {
       });
     }
 
-    user.password = req.body.newPassword;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(req.body.newPassword, salt);
+    user.password = hashedPassword;
     await user.save();
 
     res.status(201).json({
