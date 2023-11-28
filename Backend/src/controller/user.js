@@ -1,208 +1,277 @@
-const Joi = require("joi");
-const db = require("../models/index.js");
-const Users = db.User;
+const chai = require("chai");
+const chaiHttp = require("chai-http");
+const app = require("../app.js");
 
-//ALL USER
-exports.allUsers = async (req, res) => {
-  try {
-    const user = await Users.findAll({
-      order: [["id", "ASC"]],
+chai.use(chaiHttp);
+
+describe("User API", () => {
+  describe("GET /users", () => {
+    it("should get all users", (done) => {
+      chai
+        .request(app)
+        .get("/users")
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(true);
+          res.body.should.have.property("count").be.a("number");
+          res.body.should.have.property("data").be.an("array");
+          done();
+        });
     });
-
-    res.status(200).json({
-      success: true,
-      count: user.length,
-      data: user,
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
-
-// REGISTER USER
-exports.registerUser = async (req, res, next) => {
-  try {
-    const { body } = req;
-
-    const blogSchema = Joi.object({
-      name: Joi.string().required(),
-      email: Joi.string()
-        .required()
-        .email({ tlds: { allow: false } }),
-      password: Joi.string().required().min(6),
-    });
-
-    const { name, email, password } = await blogSchema.validateAsync(body);
-
-    const userExists = await Users.findOne({where: {email: req.body.email}})
-
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        Error: `User ${userExists.name} already registered!`
-      })
-    }
-
-    const user = await Users.create({
-      name,
-      email,
-      password,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: user,
-      message: "User created successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to create user"
-    });
-  }
-};
-
-//LOGIN USER
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      Error: "Please provide an email and password",
-      message: "Authentication failed"
-    });
-  }
-
-  const user = await Users.findOne({ where: { email: req.body.email } });
-
-  if (!user || user === null) {
-    return res.status(401).json({
-      success: false,
-      Error: "Invalid credential",
-      message: "Authentication failed"
-    });
-  }
-
-  const isMatch = await user.validPassword(password, user.password);
-
-  if (!isMatch) {
-    return res.status(401).json({
-      success: false,
-      Error: "Incorrect Password",
-      message: "Authentication failed"
-    });
-  }
-
-  sendTokenResponse(user, 200, res);
-};
-
-//UPDATE USER
-exports.updateUser = async (req, res, next) => {
-  try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-    };
-
-    await Users.update(fieldsToUpdate, {
-      where: { id: req.user.id },
-    });
-
-    res.status(200).json({
-      success: true,
-      data: fieldsToUpdate,
-      message: "User updated successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to update user"
-    });
-  }
-};
-
-//UPDATE PASSWORD
-exports.updatePassword = async (req, res, next) => {
-  try {
-    const user = await Users.findByPk(req.user.id);
-
-    if (!user || user === null) {
-      return res.status(401).json({
-        success: false,
-        Error: "Invalid credential",
-        message: "Failed to update password"
-      });
-    }
-
-    if (!(await user.matchPassword(req.body.currentPassword))) {
-      return res.status(401).json({
-        success: false,
-        Error: "CurrentPassword is incorrect",
-        message: "Failed to update password"
-      });
-    }
-
-    user.password = req.body.newPassword;
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      newPassword: user.password,
-      message: "Password updated successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to update password"
-    });
-  }
-};
-
-exports.logout = async (req, res) => {
-  try {
-    const finderUser = await Users.findOne({
-      where: { token: req.user.token },
-    });
-    if (!finderUser || finderUser == "null") {
-      return res.status(400).json({
-        success: false,
-        Error: `please login again!`,
-        message: "Logout failed"
-      });
-    }
-
-    finderUser.token = null;
-    await finderUser.save();
-
-    res.status(201).json({
-      success: true,
-      message: `logout User ${finderUser.name} successfully!`,
-      message: "Logout successful"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Logout failed"
-    });
-  }
-};
-
-//CREATE TOKEN & SEND RESPONSE
-const sendTokenResponse = async (user, statusCode, res) => {
-  const token = user.getSignedJwtToken(user.id);
-  res.status(statusCode).json({
-    success: true,
-    token,
-    user,
-    message: "Login successful"
   });
-  await Users.update({ token }, { where: { id: user.id } });
-};
+
+  describe("POST /register", () => {
+    it("should register a new user", (done) => {
+      const user = {
+        name: "John Doe",
+        email: "johndoe@example.com",
+        password: "password",
+      };
+      chai
+        .request(app)
+        .post("/register")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(201);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(true);
+          res.body.should.have.property("data").be.an("object");
+          done();
+        });
+    });
+
+    it("should return an error if user already exists", (done) => {
+      const user = {
+        name: "John Doe",
+        email: "johndoe@example.com",
+        password: "password",
+      };
+      chai
+        .request(app)
+        .post("/register")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+
+    it("should return an error if required fields are missing", (done) => {
+      const user = {
+        name: "John Doe",
+        password: "password",
+      };
+      chai
+        .request(app)
+        .post("/register")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+  });
+
+  describe("POST /login", () => {
+    it("should log in a user with valid credentials", (done) => {
+      const user = {
+        email: "johndoe@example.com",
+        password: "password",
+      };
+      chai
+        .request(app)
+        .post("/login")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(true);
+          res.body.should.have.property("token").be.a("string");
+          res.body.should.have.property("user").be.an("object");
+          done();
+        });
+    });
+
+    it("should return an error with invalid email", (done) => {
+      const user = {
+        email: "invalidemail@example.com",
+        password: "password",
+      };
+      chai
+        .request(app)
+        .post("/login")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(401);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+
+    it("should return an error with invalid password", (done) => {
+      const user = {
+        email: "johndoe@example.com",
+        password: "invalidpassword",
+      };
+      chai
+        .request(app)
+        .post("/login")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(401);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+
+    it("should return an error if required fields are missing", (done) => {
+      const user = {
+        email: "johndoe@example.com",
+      };
+      chai
+        .request(app)
+        .post("/login")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+  });
+
+  describe("PUT /users/:id", () => {
+    it("should update a user with valid data", (done) => {
+      const user = {
+        name: "Jane Doe",
+        email: "janedoe@example.com",
+      };
+      chai
+        .request(app)
+        .put("/users/1")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(true);
+          res.body.should.have.property("data").be.an("object");
+          done();
+        });
+    });
+
+    it("should return an error if user does not exist", (done) => {
+      const user = {
+        name: "Jane Doe",
+        email: "janedoe@example.com",
+      };
+      chai
+        .request(app)
+        .put("/users/999")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(404);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+  });
+
+  describe("PUT /users/:id/password", () => {
+    it("should update a user's password with valid credentials", (done) => {
+      const user = {
+        currentPassword: "password",
+        newPassword: "newpassword",
+      };
+      chai
+        .request(app)
+        .put("/users/1/password")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(201);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(true);
+          res.body.should.have.property("newPassword").be.a("string");
+          done();
+        });
+    });
+
+    it("should return an error with incorrect current password", (done) => {
+      const user = {
+        currentPassword: "invalidpassword",
+        newPassword: "newpassword",
+      };
+      chai
+        .request(app)
+        .put("/users/1/password")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(401);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+
+    it("should return an error if user does not exist", (done) => {
+      const user = {
+        currentPassword: "password",
+        newPassword: "newpassword",
+      };
+      chai
+        .request(app)
+        .put("/users/999/password")
+        .send(user)
+        .end((err, res) => {
+          res.should.have.status(401);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+  });
+
+  describe("GET /users/logout", () => {
+    it("should log out a user", (done) => {
+      chai
+        .request(app)
+        .get("/users/logout")
+        .end((err, res) => {
+          res.should.have.status(201);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(true);
+          res.body.should.have.property("message").be.a("string");
+          done();
+        });
+    });
+
+    it("should return an error if user is not logged in", (done) => {
+      chai
+        .request(app)
+        .get("/users/logout")
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an("object");
+          res.body.should.have.property("success").eql(false);
+          res.body.should.have.property("Error").be.a("string");
+          done();
+        });
+    });
+  });
+});
