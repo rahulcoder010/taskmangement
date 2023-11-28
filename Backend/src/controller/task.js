@@ -1,119 +1,113 @@
-const db = require("../models/index.js");
-const Tasks = db.Task;
+```javascript
+// Backend/src/controller/task.test.js
 
-exports.allTasks = async (req, res) => {
-  try {
-    if (!req.user.token) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Please login again!**",
-      });
-    }
-    const tasks = await Tasks.findAll({
-      order: [["id", "ASC"]],
+const request = require('supertest'); // Import supertest library
+const app = require('../app'); // Import your Express app
+
+describe('Task Controller', () => {
+  // Test case for the allTasks function
+  describe('/api/tasks', () => {
+    it('should return all tasks', async () => {
+      const res = await request(app).get('/api/tasks');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveLength(2); // Adjust the length based on your test data
     });
 
-    res.status(200).json({
-      success: true,
-      count: tasks.length,
-      data: tasks,
+    it('should return an error if user is not logged in', async () => {
+      const res = await request(app).get('/api/tasks');
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.Error).toBe('**Please login again!**');
     });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+  });
+
+  // Test case for the addTask function
+  describe('/api/tasks', () => {
+    it('should add a new task', async () => {
+      const task = {
+        title: 'New Task',
+        description: 'Description for the new task',
+      };
+
+      const res = await request(app).post('/api/tasks').send(task);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.title).toBe('New Task');
+      expect(res.body.data.description).toBe('Description for the new task');
     });
-  }
-};
 
-exports.addTask = async (req, res, next) => {
-  try {
-    const { title, description } = req.body;
-    if (!title || !description) {
-      return res.status(400).json({
-        success: false,
-        Error: "**title & description are required!**",
-      });
-    }
-    if (title.length >= 50 || description.length >= 200) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Title or description length too long!**",
-      });
-    }
+    it('should return an error if title and description are missing', async () => {
+      const task = {};
 
-    const task = await Tasks.create({ title, description });
+      const res = await request(app).post('/api/tasks').send(task);
 
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "addTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.Error).toBe('**title & description are required!**');
     });
-  }
-};
 
-exports.updateTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const task = await Tasks.findByPk(id);
-    if (!task) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Task not found!" });
-    }
-    if (!status) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Please add status in body!" });
-    }
-    task.status = status;
-    await task.save();
+    it('should return an error if title or description length is too long', async () => {
+      const task = {
+        title: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris quis',
+        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris quis',
+      };
 
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "updateTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+      const res = await request(app).post('/api/tasks').send(task);
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+      expect(res.body.Error).toBe('**Title or description length too long!**');
     });
-  }
-};
+  });
 
-exports.deleteTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+  // Test case for the updateTask function
+  describe('/api/tasks/:id', () => {
+    it('should update the status of a task', async () => {
+      const res = await request(app).put('/api/tasks/1').send({ status: 'Completed' });
 
-    const task = await Tasks.findByPk(id);
-
-    if (!task) {
-      return res.status(404).json({
-        status: false,
-        Error: "Task not found!",
-      });
-    }
-    await task.destroy();
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "deleteTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.status).toBe('Completed');
     });
-  }
-};
+
+    it('should return an error if task is not found', async () => {
+      const res = await request(app).put('/api/tasks/9999').send({ status: 'Completed' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.status).toBe(false);
+      expect(res.body.message).toBe('Task not found!');
+    });
+
+    it('should return an error if status is missing in the body', async () => {
+      const res = await request(app).put('/api/tasks/1').send({});
+
+      expect(res.status).toBe(404);
+      expect(res.body.status).toBe(false);
+      expect(res.body.message).toBe('Please add status in body!');
+    });
+  });
+
+  // Test case for the deleteTask function
+  describe('/api/tasks/:id', () => {
+    it('should delete a task', async () => {
+      const res = await request(app).delete('/api/tasks/1');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.id).toBe(1);
+    });
+
+    it('should return an error if task is not found', async () => {
+      const res = await request(app).delete('/api/tasks/9999');
+
+      expect(res.status).toBe(404);
+      expect(res.body.status).toBe(false);
+      expect(res.body.Error).toBe('Task not found!');
+    });
+  });
+});
+```
