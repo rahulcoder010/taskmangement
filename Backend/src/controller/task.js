@@ -117,3 +117,126 @@ exports.deleteTask = async (req, res, next) => {
     });
   }
 };
+
+// Unit Test Cases
+describe("Task Controller Unit Tests", () => {
+  // Mock req and res objects
+  const req = {};
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+  const next = jest.fn();
+  
+  // Test for allTasks function
+  it("should return all tasks", async () => {
+    await exports.allTasks(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalled();
+  });
+
+  // Test for addTask function
+  it("should add a new task", async () => {
+    req.body = {
+      title: "New Task",
+      description: "This is a new task",
+    };
+
+    await exports.addTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
+  });
+
+  it("should return an error if title or description is missing in addTask", async () => {
+    req.body = {
+      title: "",
+      description: "This is a new task",
+    };
+
+    await exports.addTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalled();
+  });
+
+  it("should return an error if title or description length is too long in addTask", async () => {
+    req.body = {
+      title: "This is a very long title that exceeds 50 characters",
+      description: "This is a new task",
+    };
+
+    await exports.addTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalled();
+  });
+
+  // Test for updateTask function
+  it("should update a task", async () => {
+    req.params = {
+      id: 1,
+    };
+    req.body = {
+      status: "Completed",
+    };
+
+    await exports.updateTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
+  });
+
+  it("should return an error if task with the given id is not found in updateTask", async () => {
+    req.params = {
+      id: 999,
+    };
+    req.body = {
+      status: "Completed",
+    };
+
+    await exports.updateTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalled();
+  });
+
+  it("should return an error if status is missing in updateTask", async () => {
+    req.params = {
+      id: 1,
+    };
+    req.body = {};
+
+    await exports.updateTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalled();
+  });
+
+  // Test for deleteTask function
+  it("should delete a task", async () => {
+    req.params = {
+      id: 1,
+    };
+
+    await exports.deleteTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
+  });
+
+  it("should return an error if task with the given id is not found in deleteTask", async () => {
+    req.params = {
+      id: 999,
+    };
+
+    await exports.deleteTask(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalled();
+  });
+});
