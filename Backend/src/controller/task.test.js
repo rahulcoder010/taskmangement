@@ -1,5 +1,3 @@
-// In "Backend/src/controller/task.js"
-
 const db = require("../models/index.js");
 const Tasks = db.Task;
 
