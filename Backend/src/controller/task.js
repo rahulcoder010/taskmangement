@@ -117,3 +117,136 @@ exports.deleteTask = async (req, res, next) => {
     });
   }
 };
+
+// Unit Test Case
+// Add task
+test("Add task", () => {
+  const req = {
+    body: {
+      title: "Test Task",
+      description: "This is a test task",
+    },
+  };
+
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  const next = jest.fn();
+
+  addTask(req, res, next);
+
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    data: {
+      title: "Test Task",
+      description: "This is a test task",
+    },
+    method: "addTask",
+  });
+  expect(next).toHaveBeenCalled();
+});
+
+// Update task
+test("Update task", () => {
+  const req = {
+    params: {
+      id: 1,
+    },
+    body: {
+      status: "completed",
+    },
+  };
+
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  const next = jest.fn();
+
+  updateTask(req, res, next);
+
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    data: {
+      id: 1,
+      title: "Test Task",
+      description: "This is a test task",
+      status: "completed",
+    },
+    method: "updateTask",
+  });
+  expect(next).toHaveBeenCalled();
+});
+
+// Delete task
+test("Delete task", () => {
+  const req = {
+    params: {
+      id: 1,
+    },
+  };
+
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  const next = jest.fn();
+
+  deleteTask(req, res, next);
+
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    data: {
+      id: 1,
+      title: "Test Task",
+      description: "This is a test task",
+      status: "completed",
+    },
+    method: "deleteTask",
+  });
+  expect(next).toHaveBeenCalled();
+});
+
+// Get all tasks
+test("Get all tasks", () => {
+  const req = {
+    user: {
+      token: "abc123",
+    },
+  };
+
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+
+  allTasks(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledWith({
+    success: true,
+    count: 10,
+    data: [
+      {
+        id: 1,
+        title: "Test Task 1",
+        description: "This is test task 1",
+        status: "completed",
+      },
+      {
+        id: 2,
+        title: "Test Task 2",
+        description: "This is test task 2",
+        status: "in progress",
+      },
+      // More tasks...
+    ],
+  });
+});
