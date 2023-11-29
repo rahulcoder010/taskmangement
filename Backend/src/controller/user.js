@@ -1,208 +1,358 @@
-const Joi = require("joi");
-const db = require("../models/index.js");
+const chai = require('chai');
+const chaiHttp = require('chai-http');
+const { app } = require('../app');
+const db = require('../models');
 const Users = db.User;
 
-//ALL USER
-exports.allUsers = async (req, res) => {
-  try {
-    const user = await Users.findAll({
-      order: [["id", "ASC"]],
-    });
+chai.use(chaiHttp);
+const expect = chai.expect;
 
-    res.status(200).json({
-      success: true,
-      count: user.length,
-      data: user,
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
-
-// REGISTER USER
-exports.registerUser = async (req, res, next) => {
-  try {
-    const { body } = req;
-
-    const blogSchema = Joi.object({
-      name: Joi.string().required(),
-      email: Joi.string()
-        .required()
-        .email({ tlds: { allow: false } }),
-      password: Joi.string().required().min(6),
-    });
-
-    const { name, email, password } = await blogSchema.validateAsync(body);
-
-    const userExists = await Users.findOne({where: {email: req.body.email}})
-
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        Error: `User ${userExists.name} already registered!`
-      })
-    }
-
-    const user = await Users.create({
-      name,
-      email,
-      password,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: user,
-      message: "User created successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to create user"
-    });
-  }
-};
-
-//LOGIN USER
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      Error: "Please provide an email and password",
-      message: "Authentication failed"
-    });
-  }
-
-  const user = await Users.findOne({ where: { email: req.body.email } });
-
-  if (!user || user === null) {
-    return res.status(401).json({
-      success: false,
-      Error: "Invalid credential",
-      message: "Authentication failed"
-    });
-  }
-
-  const isMatch = await user.validPassword(password, user.password);
-
-  if (!isMatch) {
-    return res.status(401).json({
-      success: false,
-      Error: "Incorrect Password",
-      message: "Authentication failed"
-    });
-  }
-
-  sendTokenResponse(user, 200, res);
-};
-
-//UPDATE USER
-exports.updateUser = async (req, res, next) => {
-  try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-    };
-
-    await Users.update(fieldsToUpdate, {
-      where: { id: req.user.id },
-    });
-
-    res.status(200).json({
-      success: true,
-      data: fieldsToUpdate,
-      message: "User updated successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to update user"
-    });
-  }
-};
-
-//UPDATE PASSWORD
-exports.updatePassword = async (req, res, next) => {
-  try {
-    const user = await Users.findByPk(req.user.id);
-
-    if (!user || user === null) {
-      return res.status(401).json({
-        success: false,
-        Error: "Invalid credential",
-        message: "Failed to update password"
-      });
-    }
-
-    if (!(await user.matchPassword(req.body.currentPassword))) {
-      return res.status(401).json({
-        success: false,
-        Error: "CurrentPassword is incorrect",
-        message: "Failed to update password"
-      });
-    }
-
-    user.password = req.body.newPassword;
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      newPassword: user.password,
-      message: "Password updated successfully"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Failed to update password"
-    });
-  }
-};
-
-exports.logout = async (req, res) => {
-  try {
-    const finderUser = await Users.findOne({
-      where: { token: req.user.token },
-    });
-    if (!finderUser || finderUser == "null") {
-      return res.status(400).json({
-        success: false,
-        Error: `please login again!`,
-        message: "Logout failed"
-      });
-    }
-
-    finderUser.token = null;
-    await finderUser.save();
-
-    res.status(201).json({
-      success: true,
-      message: `logout User ${finderUser.name} successfully!`,
-      message: "Logout successful"
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-      message: "Logout failed"
-    });
-  }
-};
-
-//CREATE TOKEN & SEND RESPONSE
-const sendTokenResponse = async (user, statusCode, res) => {
-  const token = user.getSignedJwtToken(user.id);
-  res.status(statusCode).json({
-    success: true,
-    token,
-    user,
-    message: "Login successful"
+describe('User API', () => {
+  before(async () => {
+    await Users.destroy({ truncate: true });
   });
-  await Users.update({ token }, { where: { id: user.id } });
-};
+
+  describe('POST /register', () => {
+    it('should register a new user', async () => {
+      const res = await chai
+        .request(app)
+        .post('/register')
+        .send({
+          name: 'John Doe',
+          email: 'johndoe@example.com',
+          password: 'password123',
+        });
+
+      expect(res).to.have.status(201);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.true;
+      expect(res.body).to.have.property('data').to.be.an('object');
+      expect(res.body.data).to.have.property('name', 'John Doe');
+      expect(res.body.data).to.have.property('email', 'johndoe@example.com');
+      expect(res.body).to.have.property('message', 'User created successfully');
+    });
+
+    it('should return an error if the email is already registered', async () => {
+      const res = await chai
+        .request(app)
+        .post('/register')
+        .send({
+          name: 'John Doe',
+          email: 'johndoe@example.com',
+          password: 'password123',
+        });
+
+      expect(res).to.have.status(400);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('User John Doe already registered!');
+    });
+
+    it('should return an error if required fields are missing', async () => {
+      const res = await chai
+        .request(app)
+        .post('/register')
+        .send({
+          name: 'John Doe',
+        });
+
+      expect(res).to.have.status(400);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('child "email" fails because ["email" is required]');
+    });
+
+    it('should return an error if the email format is invalid', async () => {
+      const res = await chai
+        .request(app)
+        .post('/register')
+        .send({
+          name: 'John Doe',
+          email: 'johndoe',
+          password: 'password123',
+        });
+
+      expect(res).to.have.status(400);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('child "email" fails because ["email" must be a valid email]');
+    });
+
+    it('should return an error if the password is less than 6 characters', async () => {
+      const res = await chai
+        .request(app)
+        .post('/register')
+        .send({
+          name: 'John Doe',
+          email: 'johndoe@example.com',
+          password: 'pass',
+        });
+
+      expect(res).to.have.status(400);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('child "password" fails because ["password" length must be at least 6 characters long]');
+    });
+  });
+
+  describe('POST /login', () => {
+    before(async () => {
+      await Users.create({
+        name: 'John Doe',
+        email: 'johndoe@example.com',
+        password: 'password123',
+      });
+    });
+
+    it('should login a user with valid credentials', async () => {
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          email: 'johndoe@example.com',
+          password: 'password123',
+        });
+
+      expect(res).to.have.status(200);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.true;
+      expect(res.body).to.have.property('token');
+      expect(res.body).to.have.property('user').to.be.an('object');
+      expect(res.body.user).to.have.property('name', 'John Doe');
+      expect(res.body.user).to.have.property('email', 'johndoe@example.com');
+      expect(res.body).to.have.property('message', 'Login successful');
+    });
+
+    it('should return an error if email is missing', async () => {
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          password: 'password123',
+        });
+
+      expect(res).to.have.status(400);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('Please provide an email and password');
+    });
+
+    it('should return an error if password is missing', async () => {
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          email: 'johndoe@example.com',
+        });
+
+      expect(res).to.have.status(400);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('Please provide an email and password');
+    });
+
+    it('should return an error if email is invalid', async () => {
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          email: 'johndoe',
+          password: 'password123',
+        });
+
+      expect(res).to.have.status(400);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('Invalid credential');
+    });
+
+    it('should return an error if password is incorrect', async () => {
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          email: 'johndoe@example.com',
+          password: 'password1234',
+        });
+
+      expect(res).to.have.status(401);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('Incorrect Password');
+    });
+  });
+
+  describe('PUT /update-user', () => {
+    let authToken = '';
+
+    before(async () => {
+      await Users.create({
+        name: 'John Doe',
+        email: 'johndoe@example.com',
+        password: 'password123',
+      });
+
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          email: 'johndoe@example.com',
+          password: 'password123',
+        });
+
+      authToken = res.body.token;
+    });
+
+    it('should update the user information', async () => {
+      const res = await chai
+        .request(app)
+        .put('/update-user')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: 'Jane Doe',
+          email: 'janedoe@example.com',
+        });
+
+      expect(res).to.have.status(200);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.true;
+      expect(res.body).to.have.property('data').to.be.an('object');
+      expect(res.body.data).to.have.property('name', 'Jane Doe');
+      expect(res.body.data).to.have.property('email', 'janedoe@example.com');
+      expect(res.body).to.have.property('message', 'User updated successfully');
+    });
+
+    it('should return an error if user does not exist', async () => {
+      const res = await chai
+        .request(app)
+        .put('/update-user')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          name: 'Jane Doe',
+          email: 'janedoe@example.com',
+        });
+
+      expect(res).to.have.status(404);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('User not found');
+    });
+  });
+
+  describe('PUT /update-password', () => {
+    let authToken = '';
+
+    before(async () => {
+      await Users.create({
+        name: 'John Doe',
+        email: 'johndoe@example.com',
+        password: 'password123',
+      });
+
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          email: 'johndoe@example.com',
+          password: 'password123',
+        });
+
+      authToken = res.body.token;
+    });
+
+    it('should update the user password', async () => {
+      const res = await chai
+        .request(app)
+        .put('/update-password')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          currentPassword: 'password123',
+          newPassword: 'newpassword456',
+        });
+
+      expect(res).to.have.status(201);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.true;
+      expect(res.body).to.have.property('newPassword', 'newpassword456');
+      expect(res.body).to.have.property('message', 'Password updated successfully');
+    });
+
+    it('should return an error if user does not exist', async () => {
+      const res = await chai
+        .request(app)
+        .put('/update-password')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          currentPassword: 'password123',
+          newPassword: 'newpassword456',
+        });
+
+      expect(res).to.have.status(404);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('User not found');
+    });
+
+    it('should return an error if current password is incorrect', async () => {
+      const res = await chai
+        .request(app)
+        .put('/update-password')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          currentPassword: 'password1234',
+          newPassword: 'newpassword456',
+        });
+
+      expect(res).to.have.status(401);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('CurrentPassword is incorrect');
+    });
+  });
+
+  describe('POST /logout', () => {
+    let authToken = '';
+
+    before(async () => {
+      await Users.create({
+        name: 'John Doe',
+        email: 'johndoe@example.com',
+        password: 'password123',
+      });
+
+      const res = await chai
+        .request(app)
+        .post('/login')
+        .send({
+          email: 'johndoe@example.com',
+          password: 'password123',
+        });
+
+      authToken = res.body.token;
+    });
+
+    it('should logout the user', async () => {
+      const res = await chai
+        .request(app)
+        .post('/logout')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res).to.have.status(201);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.true;
+      expect(res.body).to.have.property('message', 'Logout successful');
+    });
+
+    it('should return an error if user not found', async () => {
+      const res = await chai
+        .request(app)
+        .post('/logout')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res).to.have.status(404);
+      expect(res.body).to.be.an('object');
+      expect(res.body).to.have.property('success').to.be.false;
+      expect(res.body).to.have.property('Error').to.equal('User not found');
+    });
+  });
+});
