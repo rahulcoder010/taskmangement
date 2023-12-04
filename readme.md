@@ -1,0 +1,3 @@
+# Project Description
+
+This project is a task management system that helps individuals and teams organize and track their tasks. It allows users to create tasks, assign them to team members, set due dates, and track the progress of each task. The system also provides features for prioritizing tasks, adding comments, and attaching files. With this task management system, users can easily collaborate, stay organized, and manage their workload efficiently.
