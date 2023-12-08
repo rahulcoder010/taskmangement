@@ -117,3 +117,102 @@ exports.deleteTask = async (req, res, next) => {
     });
   }
 };
+
+// Test cases
+
+async function testCases() {
+  try {
+    const mockReq = {
+      user: {
+        token: "mockToken",
+      },
+    };
+    const mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    // Test case for allTasks
+    const allTasksResult = await exports.allTasks(mockReq, mockRes);
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      success: true,
+      count: allTasksResult.data.length,
+      data: allTasksResult.data,
+    });
+
+    // Test case for addTask
+    const mockReqAddTask = {
+      body: {
+        title: "Test Task",
+        description: "This is a test task.",
+      },
+      mainData: {},
+    };
+    const mockResAddTask = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    const addTaskResult = await exports.addTask(mockReqAddTask, mockResAddTask);
+    expect(mockResAddTask.status).toHaveBeenCalledWith(200);
+    expect(mockResAddTask.json).toHaveBeenCalledWith({
+      success: true,
+      data: addTaskResult.data,
+      method: "addTask",
+    });
+
+    // Test case for updateTask
+    const mockReqUpdateTask = {
+      params: {
+        id: "1",
+      },
+      body: {
+        status: "Completed",
+      },
+      mainData: {},
+    };
+    const mockResUpdateTask = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    const updateTaskResult = await exports.updateTask(
+      mockReqUpdateTask,
+      mockResUpdateTask
+    );
+    expect(mockResUpdateTask.status).toHaveBeenCalledWith(200);
+    expect(mockResUpdateTask.json).toHaveBeenCalledWith({
+      success: true,
+      data: updateTaskResult.data,
+      method: "updateTask",
+    });
+
+    // Test case for deleteTask
+    const mockReqDeleteTask = {
+      params: {
+        id: "1",
+      },
+      mainData: {},
+    };
+    const mockResDeleteTask = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    const deleteTaskResult = await exports.deleteTask(
+      mockReqDeleteTask,
+      mockResDeleteTask
+    );
+    expect(mockResDeleteTask.status).toHaveBeenCalledWith(200);
+    expect(mockResDeleteTask.json).toHaveBeenCalledWith({
+      success: true,
+      data: deleteTaskResult.data,
+      method: "deleteTask",
+    });
+  } catch (error) {
+    console.error("Error in test cases:", error);
+  }
+}
+
+testCases();

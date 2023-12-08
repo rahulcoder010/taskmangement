@@ -206,3 +206,114 @@ const sendTokenResponse = async (user, statusCode, res) => {
   });
   await Users.update({ token }, { where: { id: user.id } });
 };
+
+//------------TEST CASES----------------
+
+// Test case for allUsers function
+test("Get all users", async () => {
+  const req = {};
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+  await exports.allUsers(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledTimes(1);
+});
+
+// Test case for registerUser function
+test("Register user", async () => {
+  const req = {
+    body: {
+      name: "John Doe",
+      email: "johndoe@example.com",
+      password: "password123",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+  await exports.registerUser(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledTimes(1);
+});
+
+// Test case for login function
+test("Login user", async () => {
+  const req = {
+    body: {
+      email: "johndoe@example.com",
+      password: "password123",
+    },
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+  await exports.login(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledTimes(1);
+});
+
+// Test case for updateUser function
+test("Update user", async () => {
+  const req = {
+    body: {
+      name: "John Doe",
+      email: "johndoe@example.com",
+    },
+    user: {
+      id: 1
+    }
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+  await exports.updateUser(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(200);
+  expect(res.json).toHaveBeenCalledTimes(1);
+});
+
+// Test case for updatePassword function
+test("Update password", async () => {
+  const req = {
+    body: {
+      currentPassword: "password123",
+      newPassword: "newpassword123",
+    },
+    user: {
+      id: 1
+    }
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+  await exports.updatePassword(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledTimes(1);
+});
+
+// Test case for logout function
+test("Logout user", async () => {
+  const req = {
+    user: {
+      token: "token",
+    }
+  };
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+  };
+  await exports.logout(req, res);
+
+  expect(res.status).toHaveBeenCalledWith(201);
+  expect(res.json).toHaveBeenCalledTimes(1);
+});
