@@ -1,208 +1,438 @@
-const Joi = require("joi");
-const db = require("../models/index.js");
-const Users = db.User;
+const assert = require("chai").assert;
+const sinon = require("sinon");
+const userController = require("../controller/user");
 
-//ALL USER
-exports.allUsers = async (req, res) => {
-  try {
-    const user = await Users.findAll({
-      order: [["id", "ASC"]],
-    });
+// Test for allUsers function
+describe("allUsers", function() {
+  it("should return all users and status code 200", async function() {
+    const req = {};
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const findAllStub = sinon.stub(Users, "findAll").returns([]);
+    res.status.returnsThis();
 
-    res.status(200).json({
+    await userController.allUsers(req, res);
+
+    sinon.assert.calledOnce(findAllStub);
+    sinon.assert.calledWith(res.status, 200);
+    sinon.assert.calledWith(res.json, {
       success: true,
-      count: user.length,
-      data: user,
+      count: 0,
+      data: []
     });
-  } catch (error) {
-    res.status(404).json({
+
+    findAllStub.restore();
+  });
+
+  it("should return error message and status code 404 on error", async function() {
+    const req = {};
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const error = new Error("Database error");
+    sinon.stub(Users, "findAll").throws(error);
+    res.status.returnsThis();
+
+    await userController.allUsers(req, res);
+
+    sinon.assert.calledWith(res.status, 404);
+    sinon.assert.calledWith(res.json, {
       success: false,
-      Error: error.message,
-    });
-  }
-};
-
-// REGISTER USER
-exports.registerUser = async (req, res, next) => {
-  try {
-    const { body } = req;
-
-    const blogSchema = Joi.object({
-      name: Joi.string().required(),
-      email: Joi.string()
-        .required()
-        .email({ tlds: { allow: false } }),
-      password: Joi.string().required().min(6),
+      Error: error.message
     });
 
-    const { name, email, password } = await blogSchema.validateAsync(body);
+    Users.findAll.restore();
+  });
+});
 
-    const userExists = await Users.findOne({where: {email: req.body.email}})
-
-    if (userExists) {
-      return res.status(400).json({
-        success: false,
-        Error: `User ${userExists.name} already registered!`
-      })
-    }
-
-    const user = await Users.create({
-      name,
-      email,
-      password,
+// Test for registerUser function
+describe("registerUser", function() {
+  it("should create a new user and return status code 201", async function() {
+    const req = { body: { name: "John", email: "john@example.com", password: "123456" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const createStub = sinon.stub(Users, "create").returns({
+      id: 1,
+      name: "John",
+      email: "john@example.com"
     });
+    const findOneStub = sinon.stub(Users, "findOne").returns(null);
+    res.status.returnsThis();
 
-    res.status(201).json({
+    await userController.registerUser(req, res, {});
+
+    sinon.assert.calledOnce(findOneStub);
+    sinon.assert.calledWith(res.status, 201);
+    sinon.assert.calledWith(res.json, {
       success: true,
-      data: user,
+      data: {
+        id: 1,
+        name: "John",
+        email: "john@example.com"
+      },
       message: "User created successfully"
     });
-  } catch (error) {
-    res.status(404).json({
+
+    createStub.restore();
+    findOneStub.restore();
+  });
+
+  it("should return error message and status code 404 on user already exists", async function() {
+    const req = { body: { name: "John", email: "john@example.com", password: "123456" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const findOneStub = sinon.stub(Users, "findOne").returns({
+      id: 1,
+      name: "John",
+      email: "john@example.com"
+    });
+    res.status.returnsThis();
+
+    await userController.registerUser(req, res, {});
+
+    sinon.assert.calledOnce(findOneStub);
+    sinon.assert.calledWith(res.status, 400);
+    sinon.assert.calledWith(res.json, {
+      success: false,
+      Error: "User John already registered!"
+    });
+
+    findOneStub.restore();
+  });
+
+  it("should return error message and status code 404 on validation error", async function() {
+    const req = { body: { name: "John", email: "john@example.com", password: "123" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const validateAsyncStub = sinon.stub(Joi, "validateAsync").throws(new Error("Validation error"));
+    res.status.returnsThis();
+
+    await userController.registerUser(req, res, {});
+
+    sinon.assert.calledOnce(validateAsyncStub);
+    sinon.assert.calledWith(res.status, 404);
+    sinon.assert.calledWith(res.json, {
+      success: false,
+      Error: "Validation error",
+      message: "Failed to create user"
+    });
+
+    validateAsyncStub.restore();
+  });
+
+  it("should return error message and status code 404 on database error", async function() {
+    const req = { body: { name: "John", email: "john@example.com", password: "123456" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const error = new Error("Database error");
+    sinon.stub(Users, "create").throws(error);
+    res.status.returnsThis();
+
+    await userController.registerUser(req, res, {});
+
+    sinon.assert.calledWith(res.status, 404);
+    sinon.assert.calledWith(res.json, {
       success: false,
       Error: error.message,
       message: "Failed to create user"
     });
-  }
-};
 
-//LOGIN USER
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+    Users.create.restore();
+  });
+});
 
-  if (!email || !password) {
-    return res.status(400).json({
+// Test for login function
+describe("login", function() {
+  beforeEach(function() {
+    this.user = {
+      id: 1,
+      email: "john@example.com",
+      password: "123456",
+      validPassword: sinon.stub()
+    };
+    sinon.stub(Users, "findOne").returns(this.user);
+  });
+
+  afterEach(function() {
+    Users.findOne.restore();
+  });
+
+  it("should return status code 400 if email or password is missing", async function() {
+    const req = { body: {} };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+
+    await userController.login(req, res);
+
+    sinon.assert.calledWith(res.status, 400);
+    sinon.assert.calledWith(res.json, {
       success: false,
       Error: "Please provide an email and password",
       message: "Authentication failed"
     });
-  }
+  });
 
-  const user = await Users.findOne({ where: { email: req.body.email } });
+  it("should return status code 401 if user does not exist", async function() {
+    const req = { body: { email: "test@example.com", password: "123456" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
 
-  if (!user || user === null) {
-    return res.status(401).json({
+    await userController.login(req, res);
+
+    sinon.assert.calledOnce(Users.findOne);
+    sinon.assert.calledWith(res.status, 401);
+    sinon.assert.calledWith(res.json, {
       success: false,
       Error: "Invalid credential",
       message: "Authentication failed"
     });
-  }
+  });
 
-  const isMatch = await user.validPassword(password, user.password);
+  it("should return status code 401 if password is incorrect", async function() {
+    const req = { body: { email: "john@example.com", password: "wrongpassword" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
 
-  if (!isMatch) {
-    return res.status(401).json({
+    await userController.login(req, res);
+
+    sinon.assert.calledOnce(Users.findOne);
+    sinon.assert.calledWith(this.user.validPassword, "wrongpassword", "123456");
+    sinon.assert.calledWith(res.status, 401);
+    sinon.assert.calledWith(res.json, {
       success: false,
       Error: "Incorrect Password",
       message: "Authentication failed"
     });
-  }
+  });
 
-  sendTokenResponse(user, 200, res);
-};
+  it("should call sendTokenResponse and return status code 200 if login is successful", async function() {
+    const req = { body: { email: "john@example.com", password: "123456" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const sendTokenResponseStub = sinon.stub(userController, "sendTokenResponse");
+    res.status.returnsThis();
 
-//UPDATE USER
-exports.updateUser = async (req, res, next) => {
-  try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-    };
+    await userController.login(req, res);
 
-    await Users.update(fieldsToUpdate, {
-      where: { id: req.user.id },
+    sinon.assert.calledOnce(Users.findOne);
+    sinon.assert.calledWith(this.user.validPassword, "123456", "123456");
+    sinon.assert.calledWith(sendTokenResponseStub, this.user, 200, res);
+    sinon.assert.calledWith(res.status, 200);
+
+    sendTokenResponseStub.restore();
+  });
+});
+
+// Test for updateUser function
+describe("updateUser", function() {
+  beforeEach(function() {
+    this.user = { id: 1 };
+    sinon.stub(Users, "update");
+  });
+
+  afterEach(function() {
+    Users.update.restore();
+  });
+
+  it("should update user and return status code 200", async function() {
+    const req = { body: { name: "John", email: "john@example.com" }, user: { id: 1 } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+
+    await userController.updateUser(req, res);
+
+    sinon.assert.calledWith(Users.update, {
+      name: "John",
+      email: "john@example.com"
+    }, {
+      where: { id: 1 }
     });
-
-    res.status(200).json({
+    sinon.assert.calledWith(res.status, 200);
+    sinon.assert.calledWith(res.json, {
       success: true,
-      data: fieldsToUpdate,
+      data: {
+        name: "John",
+        email: "john@example.com"
+      },
       message: "User updated successfully"
     });
-  } catch (error) {
-    res.status(404).json({
+  });
+
+  it("should return error message and status code 404 on error", async function() {
+    const req = { body: { name: "John", email: "john@example.com" }, user: { id: 1 } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const error = new Error("Database error");
+    sinon.stub(Users, "update").throws(error);
+    res.status.returnsThis();
+
+    await userController.updateUser(req, res);
+
+    sinon.assert.calledWith(res.status, 404);
+    sinon.assert.calledWith(res.json, {
       success: false,
       Error: error.message,
       message: "Failed to update user"
     });
-  }
-};
 
-//UPDATE PASSWORD
-exports.updatePassword = async (req, res, next) => {
-  try {
-    const user = await Users.findByPk(req.user.id);
+    Users.update.restore();
+  });
+});
 
-    if (!user || user === null) {
-      return res.status(401).json({
-        success: false,
-        Error: "Invalid credential",
-        message: "Failed to update password"
-      });
-    }
+// Test for updatePassword function
+describe("updatePassword", function() {
+  beforeEach(function() {
+    this.user = {
+      id: 1,
+      newPassword: "",
+      save: sinon.stub(),
+      matchPassword: sinon.stub()
+    };
+    sinon.stub(Users, "findByPk").returns(this.user);
+  });
 
-    if (!(await user.matchPassword(req.body.currentPassword))) {
-      return res.status(401).json({
-        success: false,
-        Error: "CurrentPassword is incorrect",
-        message: "Failed to update password"
-      });
-    }
+  afterEach(function() {
+    Users.findByPk.restore();
+  });
 
-    user.password = req.body.newPassword;
-    await user.save();
+  it("should update user password and return status code 201", async function() {
+    const req = { user: { id: 1 }, body: { currentPassword: "oldpassword", newPassword: "newpassword" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+    this.user.matchPassword.returns(true);
 
-    res.status(201).json({
+    await userController.updatePassword(req, res);
+
+    sinon.assert.calledWith(this.user.save);
+    sinon.assert.calledWith(res.status, 201);
+    sinon.assert.calledWith(res.json, {
       success: true,
-      newPassword: user.password,
+      newPassword: "newpassword",
       message: "Password updated successfully"
     });
-  } catch (error) {
-    res.status(404).json({
+  });
+
+  it("should return error message and status code 401 if user does not exist", async function() {
+    const req = { user: { id: 1 }, body: { currentPassword: "oldpassword", newPassword: "newpassword" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+    Users.findByPk.returns(null);
+
+    await userController.updatePassword(req, res);
+
+    sinon.assert.calledWith(res.status, 401);
+    sinon.assert.calledWith(res.json, {
+      success: false,
+      Error: "Invalid credential",
+      message: "Failed to update password"
+    });
+  });
+
+  it("should return error message and status code 401 if current password is incorrect", async function() {
+    const req = { user: { id: 1 }, body: { currentPassword: "wrongpassword", newPassword: "newpassword" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+    this.user.matchPassword.returns(false);
+
+    await userController.updatePassword(req, res);
+
+    sinon.assert.calledWith(res.status, 401);
+    sinon.assert.calledWith(res.json, {
+      success: false,
+      Error: "CurrentPassword is incorrect",
+      message: "Failed to update password"
+    });
+  });
+
+  it("should return error message and status code 404 on error", async function() {
+    const req = { user: { id: 1 }, body: { currentPassword: "oldpassword", newPassword: "newpassword" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const error = new Error("Database error");
+    sinon.stub(Users, "findByPk").throws(error);
+    res.status.returnsThis();
+
+    await userController.updatePassword(req, res);
+
+    sinon.assert.calledWith(res.status, 404);
+    sinon.assert.calledWith(res.json, {
       success: false,
       Error: error.message,
       message: "Failed to update password"
     });
-  }
-};
 
-exports.logout = async (req, res) => {
-  try {
-    const finderUser = await Users.findOne({
-      where: { token: req.user.token },
-    });
-    if (!finderUser || finderUser == "null") {
-      return res.status(400).json({
-        success: false,
-        Error: `please login again!`,
-        message: "Logout failed"
-      });
-    }
+    Users.findByPk.restore();
+  });
+});
 
-    finderUser.token = null;
-    await finderUser.save();
+// Test for logout function
+describe("logout", function() {
+  beforeEach(function() {
+    this.user = { token: "testtoken", name: "John" };
+    sinon.stub(Users, "findOne").returns(this.user);
+  });
 
-    res.status(201).json({
+  afterEach(function() {
+    Users.findOne.restore();
+  });
+
+  it("should update user token to null and return status code 201", async function() {
+    const req = { user: { token: "testtoken" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+
+    await userController.logout(req, res);
+
+    sinon.assert.calledWith(this.user.save);
+    sinon.assert.calledWith(res.status, 201);
+    sinon.assert.calledWith(res.json, {
       success: true,
-      message: `logout User ${finderUser.name} successfully!`,
-      message: "Logout successful"
+      message: "logout User John successfully!"
     });
-  } catch (error) {
-    res.status(404).json({
+  });
+
+  it("should return error message and status code 404 if user does not exist", async function() {
+    const req = { user: { token: "invalidtoken" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+    Users.findOne.returns(null);
+
+    await userController.logout(req, res);
+
+    sinon.assert.calledWith(res.status, 400);
+    sinon.assert.calledWith(res.json, {
+      success: false,
+      Error: "please login again!",
+      message: "Logout failed"
+    });
+  });
+
+  it("should return error message and status code 404 on error", async function() {
+    const req = { user: { token: "testtoken" } };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    const error = new Error("Database error");
+    sinon.stub(Users, "findOne").throws(error);
+    res.status.returnsThis();
+
+    await userController.logout(req, res);
+
+    sinon.assert.calledWith(res.status, 404);
+    sinon.assert.calledWith(res.json, {
       success: false,
       Error: error.message,
       message: "Logout failed"
     });
-  }
-};
 
-//CREATE TOKEN & SEND RESPONSE
-const sendTokenResponse = async (user, statusCode, res) => {
-  const token = user.getSignedJwtToken(user.id);
-  res.status(statusCode).json({
-    success: true,
-    token,
-    user,
-    message: "Login successful"
+    Users.findOne.restore();
   });
-  await Users.update({ token }, { where: { id: user.id } });
-};
+});
+
+// Test for sendTokenResponse function
+describe("sendTokenResponse", function() {
+  it("should send token response with status code 200", async function() {
+    const user = { id: 1, getSignedJwtToken: sinon.stub().returns("testtoken") };
+    const res = { status: sinon.stub(), json: sinon.stub() };
+    res.status.returnsThis();
+
+    userController.sendTokenResponse(user, 200, res);
+
+    sinon.assert.calledWith(user.getSignedJwtToken, 1);
+    sinon.assert.calledWith(res.status, 200);
+    sinon.assert.calledWith(res.json, {
+      success: true,
+      token: "testtoken",
+      user,
+      message: "Login successful"
+    });
+  });
+});
