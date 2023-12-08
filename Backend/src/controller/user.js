@@ -54,7 +54,7 @@ exports.registerUser = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      data: user,
+      data: {...user.dataValues, password: undefined},
       message: "User created successfully"
     });
   } catch (error) {
@@ -183,6 +183,7 @@ exports.logout = async (req, res) => {
 
     res.status(201).json({
       success: true,
+      data: {token: null},
       message: `logout User ${finderUser.name} successfully!`,
       message: "Logout successful"
     });
@@ -201,7 +202,7 @@ const sendTokenResponse = async (user, statusCode, res) => {
   res.status(statusCode).json({
     success: true,
     token,
-    user,
+    user: {...user.dataValues, password: undefined},
     message: "Login successful"
   });
   await Users.update({ token }, { where: { id: user.id } });
