@@ -1,119 +1,151 @@
-const db = require("../models/index.js");
-const Tasks = db.Task;
+const chai = require('chai');
+const chaiHttp = require('chai-http');
+const app = require('../app.js');
 
-exports.allTasks = async (req, res) => {
-  try {
-    if (!req.user.token) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Please login again!**",
-      });
-    }
-    const tasks = await Tasks.findAll({
-      order: [["id", "ASC"]],
+chai.use(chaiHttp);
+
+describe('Task API', () => {
+  
+  describe('GET /api/tasks', () => {
+    it('should return all tasks', (done) => {
+      chai
+        .request(app)
+        .get('/api/tasks')
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').to.be.true;
+          res.body.should.have.property('count').to.be.a('number');
+          res.body.should.have.property('data').to.be.an('array');
+          done();
+        });
+    });
+  });
+
+  describe('POST /api/tasks', () => {
+    it('should add a new task', (done) => {
+      chai
+        .request(app)
+        .post('/api/tasks')
+        .send({
+          title: 'Task 1',
+          description: 'Description 1'
+        })
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').to.be.true;
+          res.body.should.have.property('data').to.be.an('object');
+          done();
+        });
     });
 
-    res.status(200).json({
-      success: true,
-      count: tasks.length,
-      data: tasks,
+    it('should return an error if title or description is missing', (done) => {
+      chai
+        .request(app)
+        .post('/api/tasks')
+        .send({})
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').to.be.false;
+          res.body.should.have.property('Error').to.be.a('string');
+          done();
+        });
     });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+
+    it('should return an error if title or description length is too long', (done) => {
+      chai
+        .request(app)
+        .post('/api/tasks')
+        .send({
+          title: 'This is a very long title that exceeds the maximum limit',
+          description: 'This is a very long description that exceeds the maximum limit'
+        })
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').to.be.false;
+          res.body.should.have.property('Error').to.be.a('string');
+          done();
+        });
     });
-  }
-};
+  });
 
-exports.addTask = async (req, res, next) => {
-  try {
-    const { title, description } = req.body;
-    if (!title || !description) {
-      return res.status(400).json({
-        success: false,
-        Error: "**title & description are required!**",
-      });
-    }
-    if (title.length >= 50 || description.length >= 200) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Title or description length too long!**",
-      });
-    }
-
-    const task = await Tasks.create({ title, description });
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "addTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+  describe('PUT /api/tasks/:id', () => {
+    it('should update the status of a task', (done) => {
+      chai
+        .request(app)
+        .put('/api/tasks/1')
+        .send({
+          status: 'completed'
+        })
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').to.be.true;
+          res.body.should.have.property('data').to.be.an('object');
+          done();
+        });
     });
-  }
-};
 
-exports.updateTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const task = await Tasks.findByPk(id);
-    if (!task) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Task not found!" });
-    }
-    if (!status) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Please add status in body!" });
-    }
-    task.status = status;
-    await task.save();
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "updateTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+    it('should return an error if task is not found', (done) => {
+      chai
+        .request(app)
+        .put('/api/tasks/999')
+        .send({
+          status: 'completed'
+        })
+        .end((err, res) => {
+          res.should.have.status(404);
+          res.body.should.be.an('object');
+          res.body.should.have.property('status').to.be.false;
+          res.body.should.have.property('message').to.be.a('string');
+          done();
+        });
     });
-  }
-};
 
-exports.deleteTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const task = await Tasks.findByPk(id);
-
-    if (!task) {
-      return res.status(404).json({
-        status: false,
-        Error: "Task not found!",
-      });
-    }
-    await task.destroy();
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "deleteTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+    it('should return an error if status is missing', (done) => {
+      chai
+        .request(app)
+        .put('/api/tasks/1')
+        .send({})
+        .end((err, res) => {
+          res.should.have.status(404);
+          res.body.should.be.an('object');
+          res.body.should.have.property('status').to.be.false;
+          res.body.should.have.property('message').to.be.a('string');
+          done();
+        });
     });
-  }
-};
+  });
+
+  describe('DELETE /api/tasks/:id', () => {
+    it('should delete a task', (done) => {
+      chai
+        .request(app)
+        .delete('/api/tasks/1')
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').to.be.true;
+          res.body.should.have.property('data').to.be.an('object');
+          done();
+        });
+    });
+
+    it('should return an error if task is not found', (done) => {
+      chai
+        .request(app)
+        .delete('/api/tasks/999')
+        .end((err, res) => {
+          res.should.have.status(404);
+          res.body.should.be.an('object');
+          res.body.should.have.property('status').to.be.false;
+          res.body.should.have.property('Error').to.be.a('string');
+          done();
+        });
+    });
+  });
+
+});
