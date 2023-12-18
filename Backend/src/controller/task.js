@@ -1,119 +1,105 @@
-const db = require("../models/index.js");
-const Tasks = db.Task;
+const chai = require('chai');
+const chaiHttp = require('chai-http');
 
-exports.allTasks = async (req, res) => {
-  try {
-    if (!req.user.token) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Please login again!**",
-      });
-    }
-    const tasks = await Tasks.findAll({
-      order: [["id", "ASC"]],
-    });
+chai.use(chaiHttp);
 
-    res.status(200).json({
-      success: true,
-      count: tasks.length,
-      data: tasks,
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
+const { expect } = chai;
 
-exports.addTask = async (req, res, next) => {
-  try {
-    const { title, description } = req.body;
-    if (!title || !description) {
-      return res.status(400).json({
-        success: false,
-        Error: "**title & description are required!**",
-      });
-    }
-    if (title.length >= 50 || description.length >= 200) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Title or description length too long!**",
-      });
-    }
+describe('Task API', () => {
+  it('should return all tasks', async () => {
+    const res = await chai
+      .request('http://localhost:3000')
+      .get('/tasks');
 
-    const task = await Tasks.create({ title, description });
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.property('success').to.be.true;
+    expect(res.body).to.have.property('count').to.be.a('number');
+    expect(res.body).to.have.property('data').to.be.an('array');
+  });
 
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "addTask",
+  it('should add a task', async () => {
+    const task = {
+      title: 'New Task',
+      description: 'Task Description',
     };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
 
-exports.updateTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const task = await Tasks.findByPk(id);
-    if (!task) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Task not found!" });
-    }
-    if (!status) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Please add status in body!" });
-    }
-    task.status = status;
-    await task.save();
+    const res = await chai
+      .request('http://localhost:3000')
+      .post('/tasks')
+      .send(task);
 
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "updateTask",
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.property('success').to.be.true;
+    expect(res.body).to.have.property('data').to.be.an('object');
+  });
+
+  it('should not add a task without title', async () => {
+    const task = {
+      description: 'Task Description',
     };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
 
-exports.deleteTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+    const res = await chai
+      .request('http://localhost:3000')
+      .post('/tasks')
+      .send(task);
 
-    const task = await Tasks.findByPk(id);
+    expect(res).to.have.status(400);
+    expect(res.body).to.have.property('success').to.be.false;
+    expect(res.body).to.have.property('Error');
+  });
 
-    if (!task) {
-      return res.status(404).json({
-        status: false,
-        Error: "Task not found!",
-      });
-    }
-    await task.destroy();
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "deleteTask",
+  it('should not add a task with long title or description', async () => {
+    const task = {
+      title: 'This is a very long title that exceeds the limit.',
+      description:
+        'This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters. This is a very long description with more than 200 characters.',
     };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
+
+    const res = await chai
+      .request('http://localhost:3000')
+      .post('/tasks')
+      .send(task);
+
+    expect(res).to.have.status(400);
+    expect(res.body).to.have.property('success').to.be.false;
+    expect(res.body).to.have.property('Error');
+  });
+
+  it('should update a task', async () => {
+    const task = {
+      status: 'completed',
+    };
+
+    const res = await chai
+      .request('http://localhost:3000')
+      .put('/tasks/1')
+      .send(task);
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.property('success').to.be.true;
+    expect(res.body).to.have.property('data').to.be.an('object');
+  });
+
+  it('should not update a task without status', async () => {
+    const task = {};
+
+    const res = await chai
+      .request('http://localhost:3000')
+      .put('/tasks/1')
+      .send(task);
+
+    expect(res).to.have.status(404);
+    expect(res.body).to.have.property('success').to.be.false;
+    expect(res.body).to.have.property('message');
+  });
+
+  it('should delete a task', async () => {
+    const res = await chai
+      .request('http://localhost:3000')
+      .delete('/tasks/1');
+
+    expect(res).to.have.status(200);
+    expect(res.body).to.have.property('success').to.be.true;
+    expect(res.body).to.have.property('data').to.be.an('object');
+  });
+});
