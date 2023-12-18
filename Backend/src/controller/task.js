@@ -1,119 +1,159 @@
-const db = require("../models/index.js");
-const Tasks = db.Task;
+const chai = require('chai');
+const chaiHttp = require('chai-http');
+const should = chai.should();
 
-exports.allTasks = async (req, res) => {
-  try {
-    if (!req.user.token) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Please login again!**",
+chai.use(chaiHttp);
+
+const server = require('../server');
+const Tasks = require('../models/task');
+
+describe('Task API', () => {
+  beforeEach((done) => {
+    // Clear the database before each test
+    Tasks.deleteMany({}, (err) => {
+      done();
+    });
+  });
+
+  describe('GET /tasks', () => {
+    it('should get all tasks', (done) => {
+      chai.request(server)
+        .get('/tasks')
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').eql(true);
+          res.body.should.have.property('count').eql(0);
+          res.body.should.have.property('data').to.be.an('array');
+          done();
+        });
+    });
+  });
+
+  describe('POST /tasks', () => {
+    it('should add a new task', (done) => {
+      const task = {
+        title: 'Test Task',
+        description: 'This is a test task'
+      };
+      chai.request(server)
+        .post('/tasks')
+        .send(task)
+        .end((err, res) => {
+          res.should.have.status(200);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').eql(true);
+          res.body.should.have.property('data').to.be.an('object');
+          res.body.data.should.have.property('_id');
+          done();
+        });
+    });
+    it('should return an error if title and description are not provided', (done) => {
+      const task = {
+        description: 'This is a test task'
+      };
+      chai.request(server)
+        .post('/tasks')
+        .send(task)
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').eql(false);
+          res.body.should.have.property('Error').eql('title & description are required!');
+          done();
+        });
+    });
+    it('should return an error if title or description length is too long', (done) => {
+      const task = {
+        title: 'This is a very long title that is more than 50 characters',
+        description: 'This is a test task'
+      };
+      chai.request(server)
+        .post('/tasks')
+        .send(task)
+        .end((err, res) => {
+          res.should.have.status(400);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').eql(false);
+          res.body.should.have.property('Error').eql('Title or description length too long!');
+          done();
+        });
+    });
+  });
+
+  describe('PUT /tasks/:id', () => {
+    it('should update a task', (done) => {
+      const task = new Task({ title: 'Test Task', description: 'This is a test task' });
+      task.save((err, task) => {
+        chai.request(server)
+          .put('/tasks/' + task.id)
+          .send({ status: 'completed' })
+          .end((err, res) => {
+            res.should.have.status(200);
+            res.body.should.be.an('object');
+            res.body.should.have.property('success').eql(true);
+            res.body.should.have.property('data').to.be.an('object');
+            res.body.data.should.have.property('_id');
+            res.body.data.should.have.property('status').eql('completed');
+            done();
+          });
       });
-    }
-    const tasks = await Tasks.findAll({
-      order: [["id", "ASC"]],
     });
-
-    res.status(200).json({
-      success: true,
-      count: tasks.length,
-      data: tasks,
+    it('should return an error if the task is not found', (done) => {
+      chai.request(server)
+        .put('/tasks/123')
+        .send({ status: 'completed' })
+        .end((err, res) => {
+          res.should.have.status(404);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').eql(false);
+          res.body.should.have.property('message').eql('Task not found!');
+          done();
+        });
     });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
-
-exports.addTask = async (req, res, next) => {
-  try {
-    const { title, description } = req.body;
-    if (!title || !description) {
-      return res.status(400).json({
-        success: false,
-        Error: "**title & description are required!**",
+    it('should return an error if the status is not provided', (done) => {
+      const task = new Task({ title: 'Test Task', description: 'This is a test task' });
+      task.save((err, task) => {
+        chai.request(server)
+          .put('/tasks/' + task.id)
+          .send({})
+          .end((err, res) => {
+            res.should.have.status(404);
+            res.body.should.be.an('object');
+            res.body.should.have.property('success').eql(false);
+            res.body.should.have.property('message').eql('Please add status in body!');
+            done();
+          });
       });
-    }
-    if (title.length >= 50 || description.length >= 200) {
-      return res.status(400).json({
-        success: false,
-        Error: "**Title or description length too long!**",
+    });
+  });
+
+  describe('DELETE /tasks/:id', () => {
+    it('should delete a task', (done) => {
+      const task = new Task({ title: 'Test Task', description: 'This is a test task' });
+      task.save((err, task) => {
+        chai.request(server)
+          .delete('/tasks/' + task.id)
+          .end((err, res) => {
+            res.should.have.status(200);
+            res.body.should.be.an('object');
+            res.body.should.have.property('success').eql(true);
+            res.body.should.have.property('data').to.be.an('object');
+            res.body.data.should.have.property('_id');
+            done();
+          });
       });
-    }
-
-    const task = await Tasks.create({ title, description });
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "addTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
     });
-  }
-};
-
-exports.updateTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const task = await Tasks.findByPk(id);
-    if (!task) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Task not found!" });
-    }
-    if (!status) {
-      return res
-        .status(404)
-        .json({ status: false, message: "Please add status in body!" });
-    }
-    task.status = status;
-    await task.save();
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "updateTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
+    it('should return an error if the task is not found', (done) => {
+      chai.request(server)
+        .delete('/tasks/123')
+        .end((err, res) => {
+          res.should.have.status(404);
+          res.body.should.be.an('object');
+          res.body.should.have.property('success').eql(false);
+          res.body.should.have.property('Error').eql('Task not found!');
+          done();
+        });
     });
-  }
-};
-
-exports.deleteTask = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const task = await Tasks.findByPk(id);
-
-    if (!task) {
-      return res.status(404).json({
-        status: false,
-        Error: "Task not found!",
-      });
-    }
-    await task.destroy();
-
-    req.mainData = {
-      success: true,
-      data: task,
-      method: "deleteTask",
-    };
-    next();
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      Error: error.message,
-    });
-  }
-};
+  });
+});
