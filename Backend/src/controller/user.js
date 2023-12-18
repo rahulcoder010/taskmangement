@@ -5,14 +5,14 @@ const Users = db.User;
 //ALL USER
 exports.allUsers = async (req, res) => {
   try {
-    const user = await Users.findAll({
+    const users = await Users.findAll({
       order: [["id", "ASC"]],
     });
 
     res.status(200).json({
       success: true,
-      count: user.length,
-      data: user,
+      count: users.length,
+      data: users,
     });
   } catch (error) {
     res.status(404).json({
@@ -27,7 +27,7 @@ exports.registerUser = async (req, res, next) => {
   try {
     const { body } = req;
 
-    const blogSchema = Joi.object({
+    const userSchema = Joi.object({
       name: Joi.string().required(),
       email: Joi.string()
         .required()
@@ -35,9 +35,9 @@ exports.registerUser = async (req, res, next) => {
       password: Joi.string().required().min(6),
     });
 
-    const { name, email, password } = await blogSchema.validateAsync(body);
+    const { name, email, password } = await userSchema.validateAsync(body);
 
-    const userExists = await Users.findOne({where: {email: req.body.email}})
+    const userExists = await Users.findOne({where: {email}})
 
     if (userExists) {
       return res.status(400).json({
@@ -78,7 +78,7 @@ exports.login = async (req, res) => {
     });
   }
 
-  const user = await Users.findOne({ where: { email: req.body.email } });
+  const user = await Users.findOne({ where: { email } });
 
   if (!user || user === null) {
     return res.status(401).json({
@@ -167,10 +167,10 @@ exports.updatePassword = async (req, res, next) => {
 
 exports.logout = async (req, res) => {
   try {
-    const finderUser = await Users.findOne({
+    const foundUser = await Users.findOne({
       where: { token: req.user.token },
     });
-    if (!finderUser || finderUser == "null") {
+    if (!foundUser || foundUser === null) {
       return res.status(400).json({
         success: false,
         Error: `please login again!`,
@@ -178,12 +178,12 @@ exports.logout = async (req, res) => {
       });
     }
 
-    finderUser.token = null;
-    await finderUser.save();
+    foundUser.token = null;
+    await foundUser.save();
 
     res.status(201).json({
       success: true,
-      message: `logout User ${finderUser.name} successfully!`,
+      message: `logout User ${foundUser.name} successfully!`,
       message: "Logout successful"
     });
   } catch (error) {
