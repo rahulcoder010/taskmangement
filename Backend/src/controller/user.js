@@ -2,17 +2,17 @@ const Joi = require("joi");
 const db = require("../models/index.js");
 const Users = db.User;
 
-//ALL USER
+// ALL USER
 exports.allUsers = async (req, res) => {
   try {
-    const user = await Users.findAll({
+    const users = await Users.findAll({
       order: [["id", "ASC"]],
     });
 
     res.status(200).json({
       success: true,
-      count: user.length,
-      data: user,
+      count: users.length,
+      data: users,
     });
   } catch (error) {
     res.status(404).json({
@@ -27,23 +27,23 @@ exports.registerUser = async (req, res, next) => {
   try {
     const { body } = req;
 
-    const blogSchema = Joi.object({
+    const userSchema = Joi.object({
       name: Joi.string().required(),
       email: Joi.string()
         .required()
-        .email({ tlds: { allow: false } }),
+        .email({ tlds: false }),
       password: Joi.string().required().min(6),
     });
 
-    const { name, email, password } = await blogSchema.validateAsync(body);
+    const { name, email, password } = await userSchema.validateAsync(body);
 
-    const userExists = await Users.findOne({where: {email: req.body.email}})
+    const userExists = await Users.findOne({ where: { email: req.body.email } });
 
     if (userExists) {
       return res.status(400).json({
         success: false,
-        Error: `User ${userExists.name} already registered!`
-      })
+        Error: `User ${userExists.name} already registered!`,
+      });
     }
 
     const user = await Users.create({
@@ -55,18 +55,18 @@ exports.registerUser = async (req, res, next) => {
     res.status(201).json({
       success: true,
       data: user,
-      message: "User created successfully"
+      message: "User created successfully",
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
-      message: "Failed to create user"
+      message: "Failed to create user",
     });
   }
 };
 
-//LOGIN USER
+// LOGIN USER
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -74,7 +74,7 @@ exports.login = async (req, res) => {
     return res.status(400).json({
       success: false,
       Error: "Please provide an email and password",
-      message: "Authentication failed"
+      message: "Authentication failed",
     });
   }
 
@@ -84,7 +84,7 @@ exports.login = async (req, res) => {
     return res.status(401).json({
       success: false,
       Error: "Invalid credential",
-      message: "Authentication failed"
+      message: "Authentication failed",
     });
   }
 
@@ -94,40 +94,35 @@ exports.login = async (req, res) => {
     return res.status(401).json({
       success: false,
       Error: "Incorrect Password",
-      message: "Authentication failed"
+      message: "Authentication failed",
     });
   }
 
   sendTokenResponse(user, 200, res);
 };
 
-//UPDATE USER
+// UPDATE USER
 exports.updateUser = async (req, res, next) => {
   try {
-    const fieldsToUpdate = {
-      name: req.body.name,
-      email: req.body.email,
-    };
+    const { name, email } = req.body;
 
-    await Users.update(fieldsToUpdate, {
-      where: { id: req.user.id },
-    });
+    await Users.update({ name, email }, { where: { id: req.user.id } });
 
     res.status(200).json({
       success: true,
-      data: fieldsToUpdate,
-      message: "User updated successfully"
+      data: { name, email },
+      message: "User updated successfully",
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
-      message: "Failed to update user"
+      message: "Failed to update user",
     });
   }
 };
 
-//UPDATE PASSWORD
+// UPDATE PASSWORD
 exports.updatePassword = async (req, res, next) => {
   try {
     const user = await Users.findByPk(req.user.id);
@@ -136,7 +131,7 @@ exports.updatePassword = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         Error: "Invalid credential",
-        message: "Failed to update password"
+        message: "Failed to update password",
       });
     }
 
@@ -144,7 +139,7 @@ exports.updatePassword = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         Error: "CurrentPassword is incorrect",
-        message: "Failed to update password"
+        message: "Failed to update password",
       });
     }
 
@@ -154,13 +149,13 @@ exports.updatePassword = async (req, res, next) => {
     res.status(201).json({
       success: true,
       newPassword: user.password,
-      message: "Password updated successfully"
+      message: "Password updated successfully",
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
-      message: "Failed to update password"
+      message: "Failed to update password",
     });
   }
 };
@@ -170,11 +165,11 @@ exports.logout = async (req, res) => {
     const finderUser = await Users.findOne({
       where: { token: req.user.token },
     });
-    if (!finderUser || finderUser == "null") {
+    if (!finderUser || finderUser == null) {
       return res.status(400).json({
         success: false,
         Error: `please login again!`,
-        message: "Logout failed"
+        message: "Logout failed",
       });
     }
 
@@ -184,25 +179,25 @@ exports.logout = async (req, res) => {
     res.status(201).json({
       success: true,
       message: `logout User ${finderUser.name} successfully!`,
-      message: "Logout successful"
+      message: "Logout successful",
     });
   } catch (error) {
     res.status(404).json({
       success: false,
       Error: error.message,
-      message: "Logout failed"
+      message: "Logout failed",
     });
   }
 };
 
-//CREATE TOKEN & SEND RESPONSE
+// CREATE TOKEN & SEND RESPONSE
 const sendTokenResponse = async (user, statusCode, res) => {
   const token = user.getSignedJwtToken(user.id);
   res.status(statusCode).json({
     success: true,
     token,
     user,
-    message: "Login successful"
+    message: "Login successful",
   });
   await Users.update({ token }, { where: { id: user.id } });
 };
