@@ -1,4 +1,4 @@
-const { Router } = require("express");
+const express = require("express");
 const {
   allUsers,
   registerUser,
@@ -7,9 +7,9 @@ const {
   updatePassword,
   logout
 } = require("../controller/user.js");
-const router = Router();
+const router = express.Router();
 
-const { protect } = require("../middleware/protect.js");
+const protect = require("../middleware/protect.js");
 
 router
   .route("/")
@@ -18,7 +18,7 @@ router
   .put(protect, updateUser);
 
 router.post("/login", login);
-router.put("/updatePassword", protect, updatePassword)
-router.delete("/logout", protect, logout)
+router.put("/updatePassword", protect, updatePassword);
+router.delete("/logout", protect, logout);
 
 module.exports = router;

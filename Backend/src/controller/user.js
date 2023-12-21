@@ -2,7 +2,6 @@ const Joi = require("joi");
 const db = require("../models/index.js");
 const Users = db.User;
 
-//ALL USER
 exports.allUsers = async (req, res) => {
   try {
     const user = await Users.findAll({
@@ -22,7 +21,6 @@ exports.allUsers = async (req, res) => {
   }
 };
 
-// REGISTER USER
 exports.registerUser = async (req, res, next) => {
   try {
     const { body } = req;
@@ -66,7 +64,6 @@ exports.registerUser = async (req, res, next) => {
   }
 };
 
-//LOGIN USER
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -101,7 +98,6 @@ exports.login = async (req, res) => {
   sendTokenResponse(user, 200, res);
 };
 
-//UPDATE USER
 exports.updateUser = async (req, res, next) => {
   try {
     const fieldsToUpdate = {
@@ -127,7 +123,6 @@ exports.updateUser = async (req, res, next) => {
   }
 };
 
-//UPDATE PASSWORD
 exports.updatePassword = async (req, res, next) => {
   try {
     const user = await Users.findByPk(req.user.id);
@@ -195,7 +190,6 @@ exports.logout = async (req, res) => {
   }
 };
 
-//CREATE TOKEN & SEND RESPONSE
 const sendTokenResponse = async (user, statusCode, res) => {
   const token = user.getSignedJwtToken(user.id);
   res.status(statusCode).json({

@@ -1,7 +1,10 @@
-const user = require("../routes/users.js");
-const task = require("../routes/tasks.js");
+const express = require('express');
+const router = express.Router();
 
-module.exports = function (app) {
-  app.use("/user", user);
-  app.use("/task", task);
-};
+const user = require('../routes/users.js');
+const task = require('../routes/tasks.js');
+
+router.use('/user', user);
+router.use('/task', task);
+
+module.exports = router;
