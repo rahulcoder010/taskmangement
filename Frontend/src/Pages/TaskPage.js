@@ -1,3 +1,4 @@
+```jsx
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { useHistory } from "react-router-dom";
@@ -111,7 +112,7 @@ const TaskPage = () => {
     }
   };
 
-  const handleStatusChange = (event, taskId) => {
+  const handleStatusChange = (event) => {
     const newStatus = event.target.value;
     setSelectedStatus(newStatus);
   };
@@ -226,7 +227,6 @@ const TaskPage = () => {
                           </div>
                           <div className="modal-body">
                             <div className="mb-3">
-                              {/* <label for="exampleInputEmail1" className="form-label">Email address</label> */}
                               <input
                                 type="text"
                                 className="form-control"
@@ -241,10 +241,8 @@ const TaskPage = () => {
                                   })
                                 }
                               />
-                              {/* <div id="emailHelp" className="form-text">We'll never share your email with anyone else.</div> */}
                             </div>
                             <div className="mb-3">
-                              {/* <label for="exampleInputPassword1" className="form-label">Password</label> */}
                               <input
                                 type="text"
                                 className="form-control"
@@ -355,9 +353,7 @@ const TaskPage = () => {
                                       style={{ marginRight: "10px" }}
                                       id="status"
                                       value={selectedStatus}
-                                      onChange={(event) =>
-                                        handleStatusChange(event, task.id)
-                                      }
+                                      onChange={handleStatusChange}
                                     >
                                       <option value="pending">Pending</option>
                                       <option value="in progress">
@@ -423,3 +419,4 @@ const TaskPage = () => {
 };
 
 export default TaskPage;
+```

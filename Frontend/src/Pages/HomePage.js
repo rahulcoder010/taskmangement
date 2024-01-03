@@ -20,7 +20,6 @@ const HomePage = () => {
         name: "",
         email: "",
         password: "",
-        // picture: null,
     });
     const [loginFormData, setLoginFormData] = useState({
         email: "",
@@ -127,7 +126,7 @@ const HomePage = () => {
                 </form>
             )
                 : (
-                    <form className="login-form" >
+                    <form className="login-form" onSubmit={handleLoginSubmit}>
                         <h2>Login</h2>
                         <label htmlFor="email">Email:</label>
                         <input
@@ -145,7 +144,7 @@ const HomePage = () => {
                             value={loginFormData.password}
                             onChange={handleLoginInputChange}
                         />
-                        <button type="submit" onClick={handleLoginSubmit} >Login</button>
+                        <button type="submit">Login</button>
                         <a className="switch-form-btn" onClick={() => setShowSignupForm(true)}>Switch to Signup</a>
                     </form>
                 )}
