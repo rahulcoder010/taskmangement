@@ -1,17 +1,15 @@
-import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import io from "socket.io-client";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import TaskService from "../services/TaskService";
 
 const TaskPage = () => {
   const [tasks, setTasks] = useState([]);
   const [user, setUser] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("Pending");
   const [newTask, setNewTask] = useState({ title: "", description: "" });
-  const token = localStorage.getItem("userInfo");
   const history = useHistory();
   const taskRef = useRef(tasks);
   const closeButtonRef = useRef();
@@ -29,22 +27,20 @@ const TaskPage = () => {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem("userInfo");
     if (!token) {
       history.push("/");
+    } else {
+      const data = JSON.parse(token);
+      setUser(data?.token);
+      fetchTasks(data?.token);
     }
-    const data = JSON.parse(token);
-    setUser(data?.token);
-    fetchTasks(data?.token);
-  }, []);
+  }, [history]);
 
   const handleLogout = async () => {
     const token = user;
     try {
-      await axios.delete("http://localhost:5000/user/logout", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await TaskService.logoutUser(token);
       localStorage.removeItem("userInfo");
       history.push("/"); // Redirect to the login page or any other page
     } catch (error) {
@@ -54,12 +50,8 @@ const TaskPage = () => {
 
   const fetchTasks = async (token) => {
     try {
-      const response = await axios.get("http://localhost:5000/task", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const taskData = response?.data?.data
+      const response = await TaskService.getTasks(token);
+      const taskData = response?.data?.data;
       const formattedTasks = taskData.map((task) => {
         return { ...task, status: formatStatus(task.status) };
       });
@@ -76,16 +68,7 @@ const TaskPage = () => {
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
       const token = user;
-
-      await axios.put(
-        `http://localhost:5000/task/${taskId}`,
-        { status: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await TaskService.updateTaskStatus(token, taskId, newStatus);
       setTasks((prevTasks) =>
         prevTasks.map((task) =>
           task.id === taskId ? { ...task, status: formatStatus(task.status) } : task
@@ -100,12 +83,10 @@ const TaskPage = () => {
   const handleDeleteTask = async (taskId) => {
     const token = user;
     try {
-      await axios.delete(`/task/${taskId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await TaskService.deleteTask(token, taskId);
       toast.success("Task deleted!");
+      const updatedTasks = tasks.filter((task) => task.id !== taskId);
+      setTasks(updatedTasks);
     } catch (error) {
       toast.error(error.response.data.Error);
     }
@@ -120,11 +101,7 @@ const TaskPage = () => {
     e.preventDefault();
     const token = user;
     try {
-      await axios.post("http://localhost:5000/task", newTask, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await TaskService.createTask(token, newTask);
       document.getElementById("addClose").click();
       setNewTask({ title: "", description: "" });
       toast.success("Task created successfully!");
