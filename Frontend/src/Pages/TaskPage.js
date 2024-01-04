@@ -1,4 +1,3 @@
-import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { useHistory } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
@@ -171,6 +170,7 @@ const TaskPage = () => {
   useEffect(() => {
     taskRef.current = tasks;
   }, [tasks]);
+
 
   return (
     <div>
