@@ -14,13 +14,12 @@ const HomePage = () => {
         const user = JSON.parse(localStorage.getItem('userInfo'));
 
         if (user) history.push('/tasks');
-    }, [history])
+    }, [history]);
 
     const [signupFormData, setSignupFormData] = useState({
         name: "",
         email: "",
         password: "",
-        // picture: null,
     });
     const [loginFormData, setLoginFormData] = useState({
         email: "",
@@ -33,7 +32,7 @@ const HomePage = () => {
         const { name, email, password } = signupFormData;
 
         if (!name || !email || !password) {
-            toast.error("Please enter all required fields")
+            toast.error("Please enter all required fields");
             return;
         }
         try {
@@ -42,11 +41,11 @@ const HomePage = () => {
                     "Content-Type": "application/json",
                 }
             };
-            await axios.post("/user", { name, email, password }, config)
-            toast.success("User created successfully")
-            setShowSignupForm(false)
+            await axios.post("/user", { name, email, password }, config);
+            toast.success("User created successfully");
+            setShowSignupForm(false);
         } catch (error) {
-            toast.error(error.response.data.Error)
+            toast.error(error.response.data.Error);
         }
         setSignupFormData({
             name: "",
@@ -61,7 +60,7 @@ const HomePage = () => {
         const { email, password } = loginFormData;
 
         if (!email || !password) {
-            console.log("Please enter all required fields")
+            console.log("Please enter all required fields");
             return;
         }
         try {
@@ -70,11 +69,11 @@ const HomePage = () => {
                     "Content-Type": "application/json",
                 }
             };
-            const { data } = await axios.post("/user/login", { email, password }, config)
+            const { data } = await axios.post("/user/login", { email, password }, config);
             localStorage.setItem("userInfo", JSON.stringify(data));
-            history.push('/tasks')
+            history.push('/tasks');
         } catch (error) {
-            toast.error(error.response.data.Error)
+            toast.error(error.response.data.Error);
         }
         setLoginFormData({
             email: "",
@@ -127,7 +126,7 @@ const HomePage = () => {
                 </form>
             )
                 : (
-                    <form className="login-form" >
+                    <form className="login-form" onSubmit={handleLoginSubmit}>
                         <h2>Login</h2>
                         <label htmlFor="email">Email:</label>
                         <input
@@ -145,7 +144,7 @@ const HomePage = () => {
                             value={loginFormData.password}
                             onChange={handleLoginInputChange}
                         />
-                        <button type="submit" onClick={handleLoginSubmit} >Login</button>
+                        <button type="submit">Login</button>
                         <a className="switch-form-btn" onClick={() => setShowSignupForm(true)}>Switch to Signup</a>
                     </form>
                 )}
